@@ -92,7 +92,7 @@ struct SDepthCloudPublisherData : public SPointCloudPublisherData
 	SDepthCloudPublisherData(const std::string & obj_name) : SPointCloudPublisherData(obj_name)
 	{
         pointcloud.fields.resize(4);
-        pointcloud.fields[3].name="rgb";
+        pointcloud.fields[3].name="rgba";
         pointcloud.fields[3].offset=12; 
         pointcloud.fields[3].datatype=sensor_msgs::PointField::UINT32;
         pointcloud.fields[3].count=1;

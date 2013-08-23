@@ -33,7 +33,7 @@ namespace floor_nav {
             std::string joystick_topic;
             std::string auto_topic;
             std::string body_name;
-            pcl::PointCloud<pcl::PointXYZRGB> pointCloud;
+            pcl::PointCloud<pcl::PointXYZRGBA> pointCloud;
             
             // Specific variable for lake circumnavigation
             geometry_msgs::Pose2D finishLine2D;
@@ -50,7 +50,7 @@ namespace floor_nav {
 
             geometry_msgs::PoseStamped getPoseStamped() const  ;
 
-            pcl::PointCloud<pcl::PointXYZRGB> getPointCloud() const {return pointCloud;}
+            pcl::PointCloud<pcl::PointXYZRGBA> getPointCloud() const {return pointCloud;}
 
             void publishVelocity(double linear, double angular) ;
 
