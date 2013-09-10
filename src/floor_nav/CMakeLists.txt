@@ -7,6 +7,7 @@ project(floor_nav)
 find_package(catkin REQUIRED COMPONENTS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs tf dynamic_reconfigure)
 
 ## System dependencies are found with CMake's conventions
+find_package(task_manager_msgs REQUIRED)
 find_package(task_manager_lib REQUIRED)
 # find_package(task_manager_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
@@ -59,7 +60,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES floor_nav
-#  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs task_manager_lib task_manager_msgs tf
+  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs task_manager_lib task_manager_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -93,6 +94,8 @@ include_directories(
 
 ADD_EXECUTABLE( task_server src/task_server.cpp src/SimTasksEnv.cpp) 
 TARGET_LINK_LIBRARIES(task_server ${task_manager_lib_LIBRARIES} ${catkin_LIBRARIES} dl boost_system)
+add_dependencies(task_server 
+    ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/tasks)
 # Now compile the tasks independently

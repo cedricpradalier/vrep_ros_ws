@@ -15,6 +15,7 @@ rospy.sleep(1.0);
 ma = MarkerArray()
 now = rospy.Time.now()
 
+print get_pkg_dir('floor_graph')+"/graph.picklez"
 g = ig.Graph.Read_Picklez(get_pkg_dir('floor_graph')+"/graph.picklez")
 id = 0
 for v in g.vs:
@@ -39,6 +40,7 @@ for v in g.vs:
 for e in g.es:
     v0 = g.vs[e.source]
     v1 = g.vs[e.target]
+    print (e.source,e.target)
     marker = Marker()
     marker.header.stamp = now
     marker.header.frame_id = "/world"
