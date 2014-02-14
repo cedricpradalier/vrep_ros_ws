@@ -94,23 +94,26 @@ include_directories(
 
 ADD_EXECUTABLE( task_server src/task_server.cpp src/SimTasksEnv.cpp) 
 TARGET_LINK_LIBRARIES(task_server ${task_manager_lib_LIBRARIES} ${catkin_LIBRARIES} dl boost_system)
-add_dependencies(task_server 
-    ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(task_server ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/tasks)
 # Now compile the tasks independently
 
 ADD_LIBRARY( TaskSetHeading SHARED tasks/TaskSetHeading.cpp)
 TARGET_LINK_LIBRARIES(TaskSetHeading ${catkin_LIBRARIES} dl)
+add_dependencies(TaskSetHeading ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskGoTo SHARED tasks/TaskGoTo.cpp)
 TARGET_LINK_LIBRARIES(TaskGoTo ${catkin_LIBRARIES} dl)
+add_dependencies(TaskGoTo ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskWaitForAuto SHARED tasks/TaskWaitForAuto.cpp)
 TARGET_LINK_LIBRARIES(TaskWaitForAuto ${catkin_LIBRARIES} dl)
+add_dependencies(TaskWaitForAuto ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskSetManual SHARED tasks/TaskSetManual.cpp)
 TARGET_LINK_LIBRARIES(TaskSetManual ${catkin_LIBRARIES} dl)
+add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 
 #############
