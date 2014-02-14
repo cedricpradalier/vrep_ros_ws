@@ -6,11 +6,12 @@
 using namespace floor_nav;
 
 SimTasksEnv::SimTasksEnv(ros::NodeHandle & n) :
-    nh(n), paused(false), manualControl(true), joystick_topic("/teleop/twistCommand"), auto_topic("/mux/autoCommand"), body_name("/bubbleRob")
+    nh(n), paused(false), manualControl(true), joystick_topic("/teleop/twistCommand"), auto_topic("/mux/autoCommand"), base_frame("/bubbleRob"), reference_frame("/world")
 {
     nh.getParam("joystick_topic",joystick_topic);
     nh.getParam("auto_topic",auto_topic);
-    nh.getParam("body_name",body_name);
+    nh.getParam("base_frame",base_frame);
+    nh.getParam("reference_frame",reference_frame);
 
     muxClient = nh.serviceClient<topic_tools::MuxSelect>("/mux/select");
 
@@ -42,7 +43,7 @@ geometry_msgs::Pose2D SimTasksEnv::getPose2D() const {
     geometry_msgs::Pose2D pose;
     tf::StampedTransform transform;
     try{
-        listener.lookupTransform("/world",body_name, 
+        listener.lookupTransform("/world",base_frame, 
                 ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
@@ -58,7 +59,7 @@ geometry_msgs::Pose SimTasksEnv::getPose() const {
     geometry_msgs::Pose pose;
     tf::StampedTransform transform;
     try{
-        listener.lookupTransform("/world",body_name, 
+        listener.lookupTransform(reference_frame,base_frame, 
                 ros::Time(0), transform);
     }
     catch (tf::TransformException ex){
@@ -73,7 +74,7 @@ geometry_msgs::PoseStamped SimTasksEnv::getPoseStamped() const {
     geometry_msgs::PoseStamped pose;
     tf::StampedTransform transform;
     try{
-        listener.lookupTransform("/world",body_name, 
+        listener.lookupTransform(reference_frame,base_frame, 
                 ros::Time(0), transform);
     }
     catch (tf::TransformException ex){

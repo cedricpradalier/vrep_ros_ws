@@ -32,7 +32,8 @@ namespace floor_nav {
             bool manualControl;
             std::string joystick_topic;
             std::string auto_topic;
-            std::string body_name;
+            std::string base_frame;
+            std::string reference_frame;
             pcl::PointCloud<pcl::PointXYZRGBA> pointCloud;
             
             // Specific variable for lake circumnavigation
