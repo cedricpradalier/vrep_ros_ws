@@ -1,6 +1,6 @@
 // This file is part of the ROS PLUGIN for V-REP
 // 
-// Copyright 2006-2013 Dr. Marc Andreas Freese. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -14,19 +14,22 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// The ROS PLUGIN is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// THE ROS PLUGIN IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+// WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
+// AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
+// DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+// MISUSING THIS SOFTWARE.
+// 
+// See the GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
 // along with the ROS PLUGIN.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.0.4 on July 8th 2013
+// This file was automatically created for V-REP release V3.1.2 on June 16th 2014
 
-#include "vrep_plugin/vrepSubscriber.h"
-#include "v_repLib.h"
+#include "../include/vrep_plugin/vrepSubscriber.h"
+#include "../include/v_repLib.h"
 
 CSubscriberData::CSubscriberData(ros::NodeHandle* node,const char* _topicName,int queueSize,int _streamCmd,int _auxInt1,int _auxInt2,const char* _auxString,image_transport::ImageTransport* images_streamer[1],int& imgStreamerCnt)
 {
@@ -242,12 +245,24 @@ CSubscriberData::CSubscriberData(ros::NodeHandle* node,const char* _topicName,in
 		}
 	}
 
+    if (cmdID==simros_strmcmd_set_joy_sensor)
+    {
+        generalSubscriber=node->subscribe(topicName,queueSize,&CSubscriberData::setJoySensorCallback,this);
+        isValid=true;
+    }
+	
 	if (cmdID==simros_strmcmd_set_joint_state)
 	{
 		generalSubscriber=node->subscribe(topicName,queueSize,&CSubscriberData::setJointStateCallback,this);
 		isValid=true;
 	}
-
+/*	
+	if (cmdID==simros_strmcmd_set_joint_trajectory)
+	{
+		generalSubscriber=node->subscribe(topicName,queueSize,&CSubscriberData::setJointTrajectoryCallback,this);
+		isValid=true;
+	}
+*/
 }
 
 CSubscriberData::~CSubscriberData()
@@ -505,6 +520,32 @@ void CSubscriberData::setVisionSensorImageCallback(const sensor_msgs::Image::Con
 		shutDownImageSubscriber();
 }
 
+void CSubscriberData::setJoySensorCallback(const sensor_msgs::Joy::ConstPtr& joyPacket)
+{
+	if((auxInt1>=0)&&(auxInt2>=0)&&(auxInt2+auxInt1>0))
+    {
+		float floatPacket[auxInt1 + auxInt2];
+		for(unsigned int i=0;i<(unsigned int)auxInt1;i++)
+		{
+			if (i<joyPacket->axes.size())
+				floatPacket[i] = joyPacket->axes[i];
+			else
+				floatPacket[i] = 0.0f;
+		}
+        for(unsigned int j=0;j<(unsigned int)auxInt2;j++)
+		{
+			if (j<joyPacket->buttons.size())
+				floatPacket[j+auxInt1] = (float)joyPacket->buttons[j];
+			else
+				floatPacket[j+auxInt1] = 0.0f;
+		}
+
+        simSetStringSignal(auxStr.c_str(),(simChar*)floatPacket,4*(auxInt1+auxInt2));
+    }
+    else
+        shutDownGeneralSubscriber();
+}
+
 void CSubscriberData::setJointStateCallback(const vrep_common::JointSetStateData::ConstPtr& data)
 {
 	if ( (data->handles.data.size()>0)&&(data->handles.data.size()==data->setModes.data.size())&&(data->handles.data.size()==data->values.data.size()) )
@@ -525,3 +566,44 @@ void CSubscriberData::setJointStateCallback(const vrep_common::JointSetStateData
 		}
 	}
 }
+/*
+void CSubscriberData::setJointTrajectoryCallback(const trajectory_msgs::JointTrajectory::ConstPtr& data)
+{
+	for (unsigned int i=0;i<data->joint_names.size();i++)
+	{
+		int handle=simGetObjectHandle(data->joint_names[i].c_str());
+		if (handle>=0)
+		{
+			int options=0;
+			int mode=simGetJointMode(handle,&options);
+			if (mode==sim_jointmode_force)
+			{
+				int param=0;
+				simGetObjectIntParameter(handle,2001,&param);
+				if (param==0)
+				{
+					if (data->points[i].velocities.size()>i)
+						simSetJointTargetVelocity(handle,float(data->points.velocities.data[i]));
+					if (data->points.effort.data.size()>i)
+						simSetJointForce(handle,float(data->points.effort.data[i]));	
+				}
+				else
+				{
+					if (data->points.positions.data.size()>i)	
+						simSetJointTargetPosition(handle,float(data->points.positions.data[i])); // here we have a motor controller in position
+				}
+			}
+			else if (options&1))
+			{
+				if (data->points.positions.data.size()>i)	
+					simSetJointTargetPosition(handle,float(data->points.positions.data[i])); // here we have a motor controller in position
+			}
+			else
+			{
+				if (data->points.positions.data.size()>i)	
+					simSetJointPosition(handle,float(data->points.positions.data[i])); // here we set the position directly
+			}
+		}
+	}
+}
+*/

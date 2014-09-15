@@ -1,6 +1,6 @@
 // This file is part of the ROS PLUGIN for V-REP
 // 
-// Copyright 2006-2013 Dr. Marc Andreas Freese. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -14,20 +14,23 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// The ROS PLUGIN is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// THE ROS PLUGIN IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+// WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
+// AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
+// DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+// MISUSING THIS SOFTWARE.
+// 
+// See the GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
 // along with the ROS PLUGIN.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.0.4 on July 8th 2013
+// This file was automatically created for V-REP release V3.1.2 on June 16th 2014
 
 #include "sensor_msgs/distortion_models.h"
-#include "vrep_plugin/ROS_server.h"
-#include "v_repLib.h"
+#include "../include/vrep_plugin/ROS_server.h"
+#include "../include/v_repLib.h"
 
 // Static variables:
 ros::NodeHandle* ROS_server::node = NULL;
@@ -92,7 +95,7 @@ struct SDepthCloudPublisherData : public SPointCloudPublisherData
 	SDepthCloudPublisherData(const std::string & obj_name) : SPointCloudPublisherData(obj_name)
 	{
         pointcloud.fields.resize(4);
-        pointcloud.fields[3].name="rgba";
+        pointcloud.fields[3].name="rgb";
         pointcloud.fields[3].offset=12; 
         pointcloud.fields[3].datatype=sensor_msgs::PointField::UINT32;
         pointcloud.fields[3].count=1;
@@ -194,8 +197,6 @@ ros::ServiceServer ROS_server::simRosDisablePublisherServer;
 ros::ServiceServer ROS_server::simRosSetObjectQuaternionServer;
 ros::ServiceServer ROS_server::simRosEnableSubscriberServer;
 ros::ServiceServer ROS_server::simRosDisableSubscriberServer;
-ros::ServiceServer ROS_server::simRosRMLPositionServer;
-ros::ServiceServer ROS_server::simRosRMLVelocityServer;
 ros::ServiceServer ROS_server::simRosSetJointStateServer;
 ros::ServiceServer ROS_server::simRosCreateDummyServer;
 ros::ServiceServer ROS_server::simRosGetAndClearStringSignalServer;
@@ -287,7 +288,7 @@ void ROS_server::spinOnce()
 }
 
 
-std::string ROS_server::addPublisher(const char* topicName,int queueSize,int streamCmd,int auxInt1,int auxInt2,const char* auxString)
+std::string ROS_server::addPublisher(const char* topicName,int queueSize,int streamCmd,int auxInt1,int auxInt2,const char* auxString,int publishCnt)
 {
 	// 0. Check if the streamCmd is valid:
 	if (streamCmd==simros_strmcmdnull_start)
@@ -328,6 +329,7 @@ std::string ROS_server::addPublisher(const char* topicName,int queueSize,int str
 	pub.auxInt1=auxInt1;
 	pub.auxInt2=auxInt2;
 	pub.auxStr=auxString;
+	pub.publishCnt=publishCnt;
 	pub.topicName=nm;
 	pub.dependencyCnt=0;
 	pub.specificPublisherData=NULL;
@@ -403,6 +405,21 @@ int ROS_server::removePublisher(const char* topicName,bool ignoreReferenceCounte
 	return(-1);
 }
 
+int ROS_server::wakePublisher(const char* topicName,int publishCnt)
+{
+	for (unsigned int i=0;i<publishers.size();i++)
+	{
+		if (publishers[i].topicName.compare(topicName)==0)
+		{
+			if (publishCnt<-1)
+				return(publishers[i].publishCnt);
+			publishers[i].publishCnt=publishCnt;
+			return(1);
+		}
+	}
+	return(-2);
+}
+
 void ROS_server::removeAllPublishers()
 {
 	while (publishers.size()!=0)
@@ -411,12 +428,24 @@ void ROS_server::removeAllPublishers()
 
 bool ROS_server::launchPublisher(SPublisherData& pub,int queueSize)
 {
+	if (pub.cmdID==simros_strmcmd_get_odom_data)
+	{ // courtesy of George Moustris
+	      pub.generalPublisher=node->advertise<nav_msgs::Odometry>(pub.topicName,queueSize);
+	      pub.dependencyCnt++;
+	      return(true);
+	}
+	if (pub.cmdID==simros_strmcmd_get_laser_scanner_data)
+	{ // courtesy of George Moustris
+	      pub.generalPublisher=node->advertise<sensor_msgs::LaserScan>(pub.topicName,queueSize);
+	      pub.dependencyCnt++;
+	      return(true);
+	}
 	if (pub.cmdID==simros_strmcmd_get_vision_sensor_image)
 	{
 		if (simGetObjectType(pub.auxInt1)!=sim_object_visionsensor_type)
 			return(false); // invalid data!
 		if (imgStreamerCnt==0)
-			images_streamer = new image_transport::ImageTransport(*node);
+			images_streamer = new image_transport::ImageTransport(*ROS_server::node);
 		pub.imagePublisher=images_streamer->advertise(pub.topicName,queueSize);
 		imgStreamerCnt++;
 		pub.dependencyCnt++;
@@ -662,6 +691,12 @@ bool ROS_server::launchPublisher(SPublisherData& pub,int queueSize)
 		return(true);
     }
 
+
+
+
+
+
+
 	if (pub.cmdID==simros_strmcmd_get_range_finder_data)
 	{
 		// We might set-up the signal AFTER setting up the publisher, so always return true
@@ -672,7 +707,6 @@ bool ROS_server::launchPublisher(SPublisherData& pub,int queueSize)
 		simReleaseBuffer(objName);
 		return(true);
 	}
-
 
 	if (pub.cmdID==simros_strmcmd_get_vision_sensor_info)
 	{
@@ -800,615 +834,799 @@ void ROS_server::streamAllData()
 	// 2. Now handle all "regular" streams (those that can only run while simulation is running):
 	for (int pubI=0;pubI<int(publishers.size());pubI++)
 	{
-		bool removeThisPublisher=false;
-		if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_image)
-			removeThisPublisher=streamVisionSensorImage(publishers[pubI],inf.headerInfo.stamp);
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_range_finder_data)
-			removeThisPublisher=streamLaserCloud(publishers[pubI],inf.headerInfo.stamp);
+		if (publishers[pubI].publishCnt!=-1)
+		{ // we handle only the publishers that are not asleep!
+			bool removeThisPublisher=false;
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_depth_sensor_data)
-			removeThisPublisher=streamDepthSensorCloud(publishers[pubI],inf.headerInfo.stamp);
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_joint_state)
-		{
-			int handle=publishers[pubI].auxInt1;
-			float val;
-			if ( (handle==sim_handle_all)||(simGetJointPosition(handle,&val)!=-1) )
-			{
-				sensor_msgs::JointState fl;
-				fl.header.seq=_simulationFrameID;
-				fl.header.stamp=inf.headerInfo.stamp;
-
-				if (handle==sim_handle_all)
-				{
-					int index=0;
-					while (true)
+			if (publishers[pubI].cmdID==simros_strmcmd_get_odom_data)
+			{ // courtesy of George Moustris
+				int child_Handle = publishers[pubI].auxInt1;
+				simChar* childn=simGetObjectName(child_Handle);
+				if (childn!=NULL)
+				{ // ok, the object exists
+					std::string child_frame_id=(childn);
+					simReleaseBuffer(childn);
+					child_frame_id=objNameToFrameId(child_frame_id);
+					nav_msgs::Odometry fl;
+					int header_Handle = publishers[pubI].auxInt2;
+					if (header_Handle==sim_handle_parent)
+						header_Handle=simGetObjectParent(child_Handle);
+					std::string header_frame_id="world";
+					if (header_Handle!=-1)
 					{
-						int h=simGetObjects(index++,sim_object_joint_type);
-						if (h!=-1)
+						simChar* pname=simGetObjectName(header_Handle);
+						if (pname!=NULL)
 						{
-							char* nm=simGetObjectName(h);
-							fl.name.push_back(nm);
-							simReleaseBuffer(nm);
-							float v;
-							simGetJointPosition(h,&v);
-							fl.position.push_back((double)v);
-							simGetObjectFloatParameter(h,2012,&v);
-							fl.velocity.push_back((double)v);
-							simJointGetForce(h,&v);
-							fl.effort.push_back((double)v);
+							header_frame_id=pname;
+							simReleaseBuffer(pname);
 						}
 						else
-							break;
+							header_Handle=-1;
 					}
-				}
-				else
-				{
-					float v;
-					char* nm=simGetObjectName(handle);
-					fl.name.push_back(nm);
-					simReleaseBuffer(nm);
-					simGetJointPosition(handle,&v);
-					fl.position.push_back((double)v);
-					simGetObjectFloatParameter(handle,2012,&v);
-					fl.velocity.push_back((double)v);
-					simJointGetForce(handle,&v);
-					fl.effort.push_back((double)v);
-				}
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
+					header_frame_id = objNameToFrameId(header_frame_id);
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_array_parameter)
-		{
-			float val[3];
-			if (simGetArrayParameter(publishers[pubI].auxInt1,val)!=-1)
-			{
-				geometry_msgs::Point32 fl;
-				fl.x=val[0];
-				fl.y=val[1];
-				fl.z=val[2];
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
+					//construct header
+					fl.header.seq=inf.headerInfo.seq;
+					fl.header.stamp=inf.headerInfo.stamp;
+					fl.header.frame_id=header_frame_id;
+					fl.child_frame_id=child_frame_id;
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_boolean_parameter)
-		{
-			int r=simGetBooleanParameter(publishers[pubI].auxInt1);
-			if (r!=-1)
-			{
-				std_msgs::UInt8 fl;
-				fl.data=r;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
+					//get pose and orientation
+					float val[4];
+					if (simGetObjectPosition(child_Handle,header_Handle,val)!=-1)
+					{ // should always pass (verified further up
+						fl.pose.pose.position.x=(double)val[0];
+						fl.pose.pose.position.y=(double)val[1];
+						fl.pose.pose.position.z=(double)val[2];
+						simGetObjectQuaternion(child_Handle,header_Handle,val);
+						fl.pose.pose.orientation.x=(double)val[0];
+						fl.pose.pose.orientation.y=(double)val[1];
+						fl.pose.pose.orientation.z=(double)val[2];
+						fl.pose.pose.orientation.w=(double)val[3];
+					}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_dialog_result)
-		{
-			int r=simGetDialogResult(publishers[pubI].auxInt1);
-			if (r!=-1)
-			{
-				std_msgs::Int32 fl;
-				fl.data=r;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
+					float linVel[3];
+					float angVel[3];
+					if (simGetObjectVelocity(child_Handle,linVel,angVel)!=-1)
+					{ // should always pass
+						if (header_Handle!=-1)
+						{ // following portion was forgotten (thanks to Andreas Kuhner for noticing this)
+							float mi[12];
+							simGetObjectMatrix(header_Handle,-1,mi);
+							simInvertMatrix(mi);
+							simTransformVector(mi,linVel);
+							float em[12];
+							float _pos[3]={0.0f,0.0f,0.0f};
+							float _rot[3]={angVel[0]/1000.0f,angVel[1]/1000.0f,angVel[2]/1000.0f};
+							simBuildMatrix(_pos,_rot,em);
+							float mout[12];
+							simMultiplyMatrices(mi,em,mout);
+							simGetEulerAnglesFromMatrix(mout,angVel);
+							angVel[0]*=1000.0f;
+							angVel[1]*=1000.0f;
+							angVel[2]*=1000.0f;
+						}
+						fl.twist.twist.linear.x=linVel[0];
+						fl.twist.twist.linear.y=linVel[1];
+						fl.twist.twist.linear.z=linVel[2];
+						fl.twist.twist.angular.x=angVel[0];
+						fl.twist.twist.angular.y=angVel[1];
+						fl.twist.twist.angular.z=angVel[2];
+					}
 
+					simInt Strlength;
+					simChar* s =simGetStringSignal(publishers[pubI].auxStr.c_str(),&Strlength);
+					if(s != NULL)
+					{
+						simFloat* sfloat=(simFloat*)s;
+						simInt FLlength=(int)Strlength/sizeof(simFloat);
+						if (FLlength!=72)
+						{
+							std::cout<<"Error passing covariance matrices: elements should be 36+36=72";
+							break;
+						}
+						else
+						{
+							boost::array<double,36> covarPose;
+							boost::array<double,36> covarTwist;
+							std::copy(sfloat, sfloat + 36, &covarPose[0]);
+							std::copy(sfloat + 36, sfloat + 72, &covarTwist[0]);
+							fl.pose.covariance = covarPose;
+							fl.twist.covariance= covarTwist;
+						}
+						simReleaseBuffer(s);
+					}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_get_floating_parameter)
-		{
-			float val;
-			if (simGetFloatingParameter(publishers[pubI].auxInt1,&val)!=-1)
-			{
-				std_msgs::Float32 fl;
-				fl.data=val;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_integer_parameter)
-		{
-			int val;
-			if (simGetIntegerParameter(publishers[pubI].auxInt1,&val)!=-1)
-			{
-				std_msgs::Int32 fl;
-				fl.data=val;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_float_signal)
-		{
-			float val;
-			int r=simGetFloatSignal(publishers[pubI].auxStr.c_str(),&val);
-			if (r!=-1)
-			{
-				if (r>0)
-				{ // publish only if the signal is present
-					std_msgs::Float32 fl;
-					fl.data=val;
-					publishers[pubI].generalPublisher.publish(fl);
-				}
-			}
-		//	else
-		//		removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_integer_signal)
-		{
-			int val;
-			int r=simGetIntegerSignal(publishers[pubI].auxStr.c_str(),&val);
-			if (r!=-1)
-			{
-				if (r>0)
-				{ // publish only if the signal is present
-					std_msgs::Int32 fl;
-					fl.data=val;
-					publishers[pubI].generalPublisher.publish(fl);
-				}
-			}
-		//	else
-		//		removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_string_signal)
-		{
-			int signalLength;
-			char* str=simGetStringSignal(publishers[pubI].auxStr.c_str(),&signalLength);
-			if (str!=NULL)
-			{ // publish only if the signal is present
-				std_msgs::String fl;
-				for (int j=0;j<signalLength;j++)
-					fl.data+=str[j];
-				simReleaseBuffer(str);
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-		}
-		
-		if (publishers[pubI].cmdID==simros_strmcmd_get_and_clear_string_signal)
-		{
-			int signalLength;
-			char* str=simGetStringSignal(publishers[pubI].auxStr.c_str(),&signalLength);
-			if (str!=NULL)
-			{ // publish only if the signal is present
-				std_msgs::String fl;
-				for (int j=0;j<signalLength;j++)
-					fl.data+=str[j];
-				simReleaseBuffer(str);
-				publishers[pubI].generalPublisher.publish(fl);
-				simClearStringSignal(publishers[pubI].auxStr.c_str());
-			}
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_string_parameter)
-		{
-			char* str=simGetStringParameter(publishers[pubI].auxInt1);
-			if (str!=NULL)
-			{ 
-				std_msgs::String fl;
-				fl.data=str;
-				simReleaseBuffer(str);
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_float_parameter)
-		{
-			float val;
-			if (simGetObjectFloatParameter(publishers[pubI].auxInt1,publishers[pubI].auxInt2,&val)>0)
-			{
-				std_msgs::Float32 fl;
-				fl.data=val;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_group_data)
-		{
-
-			std::vector<int> handles;
-			std::vector<int> intData;
-			std::vector<float> floatData;
-			std::vector<std::string> stringData;
-			if (getObjectGroupData(publishers[pubI].auxInt1,publishers[pubI].auxInt2,handles,intData,floatData,stringData))
-			{
-				vrep_common::ObjectGroupData fl;
-				for (int i=0;i<int(handles.size());i++)
-					fl.handles.data.push_back(handles[i]);
-				for (int i=0;i<int(intData.size());i++)
-					fl.intData.data.push_back(intData[i]);
-				for (int i=0;i<int(floatData.size());i++)
-					fl.floatData.data.push_back(floatData[i]);
-
-				for (int i=0;i<int(stringData.size());i++)
-				{
-					fl.stringData.data+=stringData[i];
-					fl.stringData.data+='\0';
-				}
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_int_parameter)
-		{
-			int val;
-			if (simGetObjectIntParameter(publishers[pubI].auxInt1,publishers[pubI].auxInt2,&val)>0)
-			{
-				std_msgs::Int32 fl;
-				fl.data=val;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_pose)
-		{
-			float val[4];
-			if (simGetObjectPosition(publishers[pubI].auxInt1,publishers[pubI].auxInt2,val)!=-1)
-			{
-				geometry_msgs::PoseStamped fl;
-				fl.header.seq=_simulationFrameID;
-				fl.header.stamp=inf.headerInfo.stamp;
-				fl.pose.position.x=(double)val[0];
-				fl.pose.position.y=(double)val[1];
-				fl.pose.position.z=(double)val[2];
-				simGetObjectQuaternion(publishers[pubI].auxInt1,publishers[pubI].auxInt2,val);
-				fl.pose.orientation.x=(double)val[0];
-				fl.pose.orientation.y=(double)val[1];
-				fl.pose.orientation.z=(double)val[2];
-				fl.pose.orientation.w=(double)val[3];
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_parent)
-		{
-			if (simGetObjectType(publishers[pubI].auxInt1)!=-1)
-			{
-				int r=simGetObjectParent(publishers[pubI].auxInt1);
-				std_msgs::Int32 fl;
-				fl.data=r;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_objects)
-		{
-			int index=0;
-			std_msgs::Int32MultiArray l;
-			while (true)
-			{
-				int h=simGetObjects(index++,publishers[pubI].auxInt1);
-				if (h!=-1)
-					l.data.push_back(h);
-				else
-					break;
-			}
-			publishers[pubI].generalPublisher.publish(l);
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_object_selection)
-		{
-			std_msgs::Int32MultiArray l;
-			int s=simGetObjectSelectionSize();
-			l.data.resize(s);
-			if (s>0)
-				simGetObjectSelection(&l.data[0]);
-			publishers[pubI].generalPublisher.publish(l);
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_ui_button_property)
-		{
-			int p=simGetUIButtonProperty(publishers[pubI].auxInt1,publishers[pubI].auxInt2);
-			if (p!=-1)
-			{
-				std_msgs::Int32 fl;
-				fl.data=p;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-		if (publishers[pubI].cmdID==simros_strmcmd_get_ui_event_button)
-		{
-			if (simGetUIProperty(publishers[pubI].auxInt1)!=-1)
-			{
-				int auxDat[2];
-				int r=simGetUIEventButton(publishers[pubI].auxInt1,auxDat);
-				if (r!=-1)
-				{ // publish only if there was an event!
-					std_msgs::Int32MultiArray l;
-					l.data.push_back(r);
-					l.data.push_back(auxDat[0]);
-					l.data.push_back(auxDat[1]);
-					publishers[pubI].generalPublisher.publish(l);
-				}
-			}
-			else
-				removeThisPublisher=true;
-		}
-		if (publishers[pubI].cmdID==simros_strmcmd_get_ui_slider)
-		{
-			int p=simGetUISlider(publishers[pubI].auxInt1,publishers[pubI].auxInt2);
-			if (p!=-1)
-			{
-				std_msgs::Int32 fl;
-				fl.data=p;
-				publishers[pubI].generalPublisher.publish(fl);
-			}
-			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_info)
-		{
-			int resol[2];
-            int handle = publishers[pubI].auxInt1;
-			if (simGetVisionSensorResolution(handle,resol)!=-1) 
-			{
-                sensor_msgs::CameraInfo info;
-                info.header.stamp = inf.headerInfo.stamp;
-				char* objName=simGetObjectName(handle);
-                info.header.frame_id = objNameToFrameId(objName);
-				simReleaseBuffer(objName);
-                info.width = resol[0];
-                info.height = resol[1];
-                simFloat view_angle = M_PI/4;
-                const unsigned int viewing_angle_id = 1004;
-                simGetObjectFloatParameter(handle, viewing_angle_id, &view_angle);
-                double f_x = (info.width/2.) / tan(view_angle/2.);
-                double f_y = f_x;
-
-                info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-                info.D.resize(5);
-                info.D[0] = 0;
-                info.D[1] = 0;
-                info.D[2] = 0;
-                info.D[3] = 0;
-                info.D[4] = 0;
-                
-                info.K[0] = f_x; info.K[1] =   0; info.K[2] = info.width/2;
-                info.K[3] =   0; info.K[4] = f_y; info.K[5] = info.height/2;
-                info.K[6] =   0; info.K[7] =   0; info.K[8] = 1;
-
-                info.R[0] = 1; info.R[1] = 0; info.R[2] = 0;
-                info.R[3] = 0; info.R[4] = 1; info.R[5] = 0;
-                info.R[6] = 0; info.R[7] = 0; info.R[8] = 1;
-
-                info.P[0] = info.K[0]; info.P[1] = 0;         info.P[2] = info.K[2]; info.P[3] = 0; 
-                info.P[4] = 0;         info.P[5] = info.K[4]; info.P[6] = info.K[5]; info.P[7] = 0; 
-                info.P[8] = 0;         info.P[9] = 0;         info.P[10] = 1;        info.P[11] = 0; 
-
-				publishers[pubI].generalPublisher.publish(info);
-            } 
-			else
-                removeThisPublisher = true;
-        }
-		if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_depth_buffer)
-		{
-			int resol[2];
-			if (simGetVisionSensorResolution(publishers[pubI].auxInt1,resol)!=-1)
-			{
-				float* buff=simGetVisionSensorDepthBuffer(publishers[pubI].auxInt1);
-				if (buff!=NULL)
-				{
-					vrep_common::VisionSensorDepthBuff fl;
-					fl.x.data=resol[0];
-					fl.y.data=resol[1];
-					for (int j=0;j<resol[0]*resol[1];j++)
-						fl.data.data.push_back(buff[j]);
-					simReleaseBuffer((char*)buff);
 					publishers[pubI].generalPublisher.publish(fl);
 				}
 				else
 					removeThisPublisher=true;
 			}
-			else
-				removeThisPublisher=true;
-		}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_read_collision)
-		{
-			int r=simReadCollision(publishers[pubI].auxInt1);
-			if (r!=-1)
-			{
-				std_msgs::Int32 fl;
-				fl.data=r;
-				publishers[pubI].generalPublisher.publish(fl);
+			if (publishers[pubI].cmdID==simros_strmcmd_get_laser_scanner_data)
+			{ // courtesy of George Moustris
+				int offspring = publishers[pubI].auxInt1;
+				simChar* offn=simGetObjectName(offspring);
+				if (offn!=NULL)
+				{ // ok, the object exists
+					std::string offspring_name(offn);
+					simReleaseBuffer(offn);
+					simInt Strlength;
+					simChar* s=simGetStringSignal(publishers[pubI]. auxStr.c_str(),&Strlength);
+					if (s!=NULL)
+					{ // string signal exists
+						simInt FLlength=(int)Strlength/sizeof(simFloat);
+						if (FLlength>3)
+						{ // string signal is large enough
+							sensor_msgs::LaserScan fl;
+							simFloat* sfloat=(simFloat*)s;
+							std::vector<float> val(sfloat,sfloat+FLlength-3);
+							std::vector<float> anglemm(sfloat+FLlength-3,sfloat+FLlength);
+
+							offspring_name = objNameToFrameId(offspring_name);
+							fl.header.seq=inf.headerInfo.seq;
+							fl.header.stamp=inf.headerInfo.stamp;
+							fl.header.frame_id=offspring_name;
+							fl.angle_min=anglemm.at(0);
+							fl.angle_max=anglemm.at(1);
+							fl.angle_increment= anglemm.at(2); //0.006135923;
+							fl.time_increment=0.0000173611115315;
+							fl.scan_time=0.025;
+							fl.range_min=0.023;
+							fl.range_max=60;
+							fl.ranges=val;
+							publishers[pubI].generalPublisher.publish(fl);
+						}
+						simReleaseBuffer(s);
+					}
+				}
+				else
+					removeThisPublisher=true;
 			}
-			else
-				removeThisPublisher=true;
-		}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_read_distance)
-		{
-			float dist;
-			int r=simReadDistance(publishers[pubI].auxInt1,&dist);
-			if (r!=-1)
+			if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_image)
+				removeThisPublisher=streamVisionSensorImage(publishers[pubI],inf.headerInfo.stamp);
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_range_finder_data)
+				removeThisPublisher=streamLaserCloud(publishers[pubI],inf.headerInfo.stamp);
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_depth_sensor_data)
+				removeThisPublisher=streamDepthSensorCloud(publishers[pubI],inf.headerInfo.stamp);
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_joint_state)
 			{
-				std_msgs::Float32 fl;
-				fl.data=dist;
-				publishers[pubI].generalPublisher.publish(fl);
+				int handle=publishers[pubI].auxInt1;
+				float val;
+				if ( (handle==sim_handle_all)||(simGetJointPosition(handle,&val)!=-1) )
+				{
+					sensor_msgs::JointState fl;
+					fl.header.seq=_simulationFrameID;
+					fl.header.stamp=inf.headerInfo.stamp;
+
+					if (handle==sim_handle_all)
+					{
+						int index=0;
+						while (true)
+						{
+							int h=simGetObjects(index++,sim_object_joint_type);
+							if (h!=-1)
+							{
+								char* nm=simGetObjectName(h);
+								fl.name.push_back(nm);
+								simReleaseBuffer(nm);
+								float v;
+								simGetJointPosition(h,&v);
+								fl.position.push_back((double)v);
+								simGetObjectFloatParameter(h,2012,&v);
+								fl.velocity.push_back((double)v);
+								simJointGetForce(h,&v);
+								fl.effort.push_back((double)v);
+							}
+							else
+								break;
+						}
+					}
+					else
+					{
+						float v;
+						char* nm=simGetObjectName(handle);
+						fl.name.push_back(nm);
+						simReleaseBuffer(nm);
+						simGetJointPosition(handle,&v);
+						fl.position.push_back((double)v);
+						simGetObjectFloatParameter(handle,2012,&v);
+						fl.velocity.push_back((double)v);
+						simJointGetForce(handle,&v);
+						fl.effort.push_back((double)v);
+					}
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
 			}
-			else
-				removeThisPublisher=true;
-		}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_read_force_sensor)
-		{
-			float force[3];
-			float torque[3];
-			int r=simReadForceSensor(publishers[pubI].auxInt1,force,torque);
-			if (r!=-1)
+			if (publishers[pubI].cmdID==simros_strmcmd_get_array_parameter)
 			{
-				vrep_common::ForceSensorData fl;
-				fl.sensorState.data=r;
-				fl.force.x=(double)force[0];
-				fl.force.y=(double)force[1];
-				fl.force.z=(double)force[2];
-				fl.torque.x=(double)torque[0];
-				fl.torque.y=(double)torque[1];
-				fl.torque.z=(double)torque[2];
-				publishers[pubI].generalPublisher.publish(fl);
+				float val[3];
+				if (simGetArrayParameter(publishers[pubI].auxInt1,val)!=-1)
+				{
+					geometry_msgs::Point32 fl;
+					fl.x=val[0];
+					fl.y=val[1];
+					fl.z=val[2];
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
 			}
-			else
-				removeThisPublisher=true;
-		}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_read_proximity_sensor)
-		{
-			float detectedPt[4];
-			int detectedObject;
-			float detectedN[3];
-			int r=simReadProximitySensor(publishers[pubI].auxInt1,detectedPt,&detectedObject,detectedN);
-			if (r!=-1)
+			if (publishers[pubI].cmdID==simros_strmcmd_get_boolean_parameter)
 			{
-				if (r>0)
-				{ // we publish only of we detected something
-					vrep_common::ProximitySensorData fl;
-					fl.detectedPoint.x=detectedPt[0];
-					fl.detectedPoint.y=detectedPt[1];
-					fl.detectedPoint.z=detectedPt[2];
+				int r=simGetBooleanParameter(publishers[pubI].auxInt1);
+				if (r!=-1)
+				{
+					std_msgs::UInt8 fl;
+					fl.data=r;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
 
-					fl.detectedObject.data=detectedObject;
+			if (publishers[pubI].cmdID==simros_strmcmd_get_dialog_result)
+			{
+				int r=simGetDialogResult(publishers[pubI].auxInt1);
+				if (r!=-1)
+				{
+					std_msgs::Int32 fl;
+					fl.data=r;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
 
-					fl.normalVector.x=detectedN[0];
-					fl.normalVector.y=detectedN[1];
-					fl.normalVector.z=detectedN[2];
 
+			if (publishers[pubI].cmdID==simros_strmcmd_get_floating_parameter)
+			{
+				float val;
+				if (simGetFloatingParameter(publishers[pubI].auxInt1,&val)!=-1)
+				{
+					std_msgs::Float32 fl;
+					fl.data=val;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_integer_parameter)
+			{
+				int val;
+				if (simGetIntegerParameter(publishers[pubI].auxInt1,&val)!=-1)
+				{
+					std_msgs::Int32 fl;
+					fl.data=val;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_float_signal)
+			{
+				float val;
+				int r=simGetFloatSignal(publishers[pubI].auxStr.c_str(),&val);
+				if (r!=-1)
+				{
+					if (r>0)
+					{ // publish only if the signal is present
+						std_msgs::Float32 fl;
+						fl.data=val;
+						publishers[pubI].generalPublisher.publish(fl);
+					}
+				}
+			//	else
+			//		removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_integer_signal)
+			{
+				int val;
+				int r=simGetIntegerSignal(publishers[pubI].auxStr.c_str(),&val);
+				if (r!=-1)
+				{
+					if (r>0)
+					{ // publish only if the signal is present
+						std_msgs::Int32 fl;
+						fl.data=val;
+						publishers[pubI].generalPublisher.publish(fl);
+					}
+				}
+			//	else
+			//		removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_string_signal)
+			{
+				int signalLength;
+				char* str=simGetStringSignal(publishers[pubI].auxStr.c_str(),&signalLength);
+				if (str!=NULL)
+				{ // publish only if the signal is present
+					std_msgs::String fl;
+					for (int j=0;j<signalLength;j++)
+						fl.data+=str[j];
+					simReleaseBuffer(str);
 					publishers[pubI].generalPublisher.publish(fl);
 				}
 			}
-			else
-				removeThisPublisher=true;
-		}
 
-		if (publishers[pubI].cmdID==simros_strmcmd_read_vision_sensor)
-		{
-			float* auxValues;
-			int* auxValuesCount;
-			int r=simReadVisionSensor(publishers[pubI].auxInt1,&auxValues,&auxValuesCount);
-			if (r>=0)
+			if (publishers[pubI].cmdID==simros_strmcmd_get_and_clear_string_signal)
 			{
-				vrep_common::VisionSensorData fl;
-				int packetCnt=auxValuesCount[0];
-				fl.packetSizes.data.resize(packetCnt);
-				fl.packetData.data.clear();
-				int cnt=0;
-				for (int j=0;j<packetCnt;j++)
-				{
-					fl.packetSizes.data[j]=auxValuesCount[1+j];
-					for (int k=0;k<fl.packetSizes.data[j];k++)
-						fl.packetData.data.push_back(auxValues[cnt++]);
+				int signalLength;
+				char* str=simGetStringSignal(publishers[pubI].auxStr.c_str(),&signalLength);
+				if (str!=NULL)
+				{ // publish only if the signal is present
+					std_msgs::String fl;
+					for (int j=0;j<signalLength;j++)
+						fl.data+=str[j];
+					simReleaseBuffer(str);
+					publishers[pubI].generalPublisher.publish(fl);
+					simClearStringSignal(publishers[pubI].auxStr.c_str());
 				}
-				fl.triggerState.data=r;
-				simReleaseBuffer((char*)auxValues);
-				simReleaseBuffer((char*)auxValuesCount);
-				publishers[pubI].generalPublisher.publish(fl);
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_string_parameter)
+			{
+				char* str=simGetStringParameter(publishers[pubI].auxInt1);
+				if (str!=NULL)
+				{
+					std_msgs::String fl;
+					fl.data=str;
+					simReleaseBuffer(str);
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_float_parameter)
+			{
+				float val;
+				if (simGetObjectFloatParameter(publishers[pubI].auxInt1,publishers[pubI].auxInt2,&val)>0)
+				{
+					std_msgs::Float32 fl;
+					fl.data=val;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_group_data)
+			{
+
+				std::vector<int> handles;
+				std::vector<int> intData;
+				std::vector<float> floatData;
+				std::vector<std::string> stringData;
+				if (getObjectGroupData(publishers[pubI].auxInt1,publishers[pubI].auxInt2,handles,intData,floatData,stringData))
+				{
+					vrep_common::ObjectGroupData fl;
+					for (int i=0;i<int(handles.size());i++)
+						fl.handles.data.push_back(handles[i]);
+					for (int i=0;i<int(intData.size());i++)
+						fl.intData.data.push_back(intData[i]);
+					for (int i=0;i<int(floatData.size());i++)
+						fl.floatData.data.push_back(floatData[i]);
+
+					for (int i=0;i<int(stringData.size());i++)
+					{
+						fl.stringData.data+=stringData[i];
+						fl.stringData.data+='\0';
+					}
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_int_parameter)
+			{
+				int val;
+				if (simGetObjectIntParameter(publishers[pubI].auxInt1,publishers[pubI].auxInt2,&val)>0)
+				{
+					std_msgs::Int32 fl;
+					fl.data=val;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_pose)
+			{
+				float val[4];
+				if (simGetObjectPosition(publishers[pubI].auxInt1,publishers[pubI].auxInt2,val)!=-1)
+				{
+					geometry_msgs::PoseStamped fl;
+					fl.header.seq=_simulationFrameID;
+					fl.header.stamp=inf.headerInfo.stamp;
+					fl.pose.position.x=(double)val[0];
+					fl.pose.position.y=(double)val[1];
+					fl.pose.position.z=(double)val[2];
+					simGetObjectQuaternion(publishers[pubI].auxInt1,publishers[pubI].auxInt2,val);
+					fl.pose.orientation.x=(double)val[0];
+					fl.pose.orientation.y=(double)val[1];
+					fl.pose.orientation.z=(double)val[2];
+					fl.pose.orientation.w=(double)val[3];
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_parent)
+			{
+				if (simGetObjectType(publishers[pubI].auxInt1)!=-1)
+				{
+					int r=simGetObjectParent(publishers[pubI].auxInt1);
+					std_msgs::Int32 fl;
+					fl.data=r;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_objects)
+			{
+				int index=0;
+				std_msgs::Int32MultiArray l;
+				while (true)
+				{
+					int h=simGetObjects(index++,publishers[pubI].auxInt1);
+					if (h!=-1)
+						l.data.push_back(h);
+					else
+						break;
+				}
+				publishers[pubI].generalPublisher.publish(l);
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_object_selection)
+			{
+				std_msgs::Int32MultiArray l;
+				int s=simGetObjectSelectionSize();
+				l.data.resize(s);
+				if (s>0)
+					simGetObjectSelection(&l.data[0]);
+				publishers[pubI].generalPublisher.publish(l);
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_ui_button_property)
+			{
+				int p=simGetUIButtonProperty(publishers[pubI].auxInt1,publishers[pubI].auxInt2);
+				if (p!=-1)
+				{
+					std_msgs::Int32 fl;
+					fl.data=p;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+			if (publishers[pubI].cmdID==simros_strmcmd_get_ui_event_button)
+			{
+				if (simGetUIProperty(publishers[pubI].auxInt1)!=-1)
+				{
+					int auxDat[2];
+					int r=simGetUIEventButton(publishers[pubI].auxInt1,auxDat);
+					if (r!=-1)
+					{ // publish only if there was an event!
+						std_msgs::Int32MultiArray l;
+						l.data.push_back(r);
+						l.data.push_back(auxDat[0]);
+						l.data.push_back(auxDat[1]);
+						publishers[pubI].generalPublisher.publish(l);
+					}
+				}
+				else
+					removeThisPublisher=true;
+			}
+			if (publishers[pubI].cmdID==simros_strmcmd_get_ui_slider)
+			{
+				int p=simGetUISlider(publishers[pubI].auxInt1,publishers[pubI].auxInt2);
+				if (p!=-1)
+				{
+					std_msgs::Int32 fl;
+					fl.data=p;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_info)
+			{
+				int resol[2];
+				int handle = publishers[pubI].auxInt1;
+				if (simGetVisionSensorResolution(handle,resol)!=-1)
+				{
+					sensor_msgs::CameraInfo info;
+					info.header.stamp = inf.headerInfo.stamp;
+					char* objName=simGetObjectName(handle);
+					info.header.frame_id = objNameToFrameId(objName);
+					simReleaseBuffer(objName);
+					info.width = resol[0];
+					info.height = resol[1];
+					simFloat view_angle = M_PI/4;
+					const unsigned int viewing_angle_id = 1004;
+					simGetObjectFloatParameter(handle, viewing_angle_id, &view_angle);
+					double f_x = (info.width/2.) / tan(view_angle/2.);
+					double f_y = f_x;
+
+					info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+					info.D.resize(5);
+					info.D[0] = 0;
+					info.D[1] = 0;
+					info.D[2] = 0;
+					info.D[3] = 0;
+					info.D[4] = 0;
+
+					info.K[0] = f_x; info.K[1] =   0; info.K[2] = info.width/2;
+					info.K[3] =   0; info.K[4] = f_y; info.K[5] = info.height/2;
+					info.K[6] =   0; info.K[7] =   0; info.K[8] = 1;
+
+					info.R[0] = 1; info.R[1] = 0; info.R[2] = 0;
+					info.R[3] = 0; info.R[4] = 1; info.R[5] = 0;
+					info.R[6] = 0; info.R[7] = 0; info.R[8] = 1;
+
+					info.P[0] = info.K[0]; info.P[1] = 0;         info.P[2] = info.K[2]; info.P[3] = 0;
+					info.P[4] = 0;         info.P[5] = info.K[4]; info.P[6] = info.K[5]; info.P[7] = 0;
+					info.P[8] = 0;         info.P[9] = 0;         info.P[10] = 1;        info.P[11] = 0;
+
+					publishers[pubI].generalPublisher.publish(info);
+				}
+				else
+					removeThisPublisher = true;
+			}
+			if (publishers[pubI].cmdID==simros_strmcmd_get_vision_sensor_depth_buffer)
+			{
+				int resol[2];
+				if (simGetVisionSensorResolution(publishers[pubI].auxInt1,resol)!=-1)
+				{
+					float* buff=simGetVisionSensorDepthBuffer(publishers[pubI].auxInt1);
+					if (buff!=NULL)
+					{
+						vrep_common::VisionSensorDepthBuff fl;
+						fl.x.data=resol[0];
+						fl.y.data=resol[1];
+						for (int j=0;j<resol[0]*resol[1];j++)
+							fl.data.data.push_back(buff[j]);
+						simReleaseBuffer((char*)buff);
+						publishers[pubI].generalPublisher.publish(fl);
+					}
+					else
+						removeThisPublisher=true;
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_read_collision)
+			{
+				int r=simReadCollision(publishers[pubI].auxInt1);
+				if (r!=-1)
+				{
+					std_msgs::Int32 fl;
+					fl.data=r;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_read_distance)
+			{
+				float dist;
+				int r=simReadDistance(publishers[pubI].auxInt1,&dist);
+				if (r!=-1)
+				{
+					std_msgs::Float32 fl;
+					fl.data=dist;
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_read_force_sensor)
+			{
+				float force[3];
+				float torque[3];
+				int r=simReadForceSensor(publishers[pubI].auxInt1,force,torque);
+				if (r!=-1)
+				{
+					vrep_common::ForceSensorData fl;
+					fl.sensorState.data=r;
+					fl.force.x=(double)force[0];
+					fl.force.y=(double)force[1];
+					fl.force.z=(double)force[2];
+					fl.torque.x=(double)torque[0];
+					fl.torque.y=(double)torque[1];
+					fl.torque.z=(double)torque[2];
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_read_proximity_sensor)
+			{
+				float detectedPt[4];
+				int detectedObject;
+				float detectedN[3];
+				int r=simReadProximitySensor(publishers[pubI].auxInt1,detectedPt,&detectedObject,detectedN);
+				if (r!=-1)
+				{
+					if (r>0)
+					{ // we publish only of we detected something
+						vrep_common::ProximitySensorData fl;
+						fl.detectedPoint.x=detectedPt[0];
+						fl.detectedPoint.y=detectedPt[1];
+						fl.detectedPoint.z=detectedPt[2];
+
+						fl.detectedObject.data=detectedObject;
+
+						fl.normalVector.x=detectedN[0];
+						fl.normalVector.y=detectedN[1];
+						fl.normalVector.z=detectedN[2];
+
+						publishers[pubI].generalPublisher.publish(fl);
+					}
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_read_vision_sensor)
+			{
+				float* auxValues;
+				int* auxValuesCount;
+				int r=simReadVisionSensor(publishers[pubI].auxInt1,&auxValues,&auxValuesCount);
+				if (r>=0)
+				{
+					vrep_common::VisionSensorData fl;
+					int packetCnt=auxValuesCount[0];
+					fl.packetSizes.data.resize(packetCnt);
+					fl.packetData.data.clear();
+					int cnt=0;
+					for (int j=0;j<packetCnt;j++)
+					{
+						fl.packetSizes.data[j]=auxValuesCount[1+j];
+						for (int k=0;k<fl.packetSizes.data[j];k++)
+							fl.packetData.data.push_back(auxValues[cnt++]);
+					}
+					fl.triggerState.data=r;
+					simReleaseBuffer((char*)auxValues);
+					simReleaseBuffer((char*)auxValuesCount);
+					publishers[pubI].generalPublisher.publish(fl);
+				}
+				else
+					removeThisPublisher=true;
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_twist_status)
+			{
+				if (publishers[pubI].auxStr.length()==0)
+				{ // new since 17/9/2013
+					float linVel[3];
+					float angVel[3];
+					int res=simGetObjectVelocity(publishers[pubI].auxInt1,linVel,angVel);
+					if (res==-1)
+						removeThisPublisher=true;
+					else
+					{
+						geometry_msgs::TwistStamped tw;
+						tw.header.frame_id = objNameToFrameId(simGetObjectName(publishers[pubI].auxInt1));
+						tw.header.stamp = inf.headerInfo.stamp;
+						tw.twist.linear.x=linVel[0];
+						tw.twist.linear.y=linVel[1];
+						tw.twist.linear.z=linVel[2];
+						tw.twist.angular.x=angVel[0];
+						tw.twist.angular.y=angVel[1];
+						tw.twist.angular.z=angVel[2];
+						publishers[pubI].generalPublisher.publish(tw);
+					}
+				}
+				else
+				{
+					simInt datalen = 0;
+					simChar * data;
+					data = simGetStringSignal(publishers[pubI].auxStr.c_str(),&datalen);
+					if (!data ||  (datalen != 6*sizeof(simFloat)))
+						removeThisPublisher = true;
+					else
+					{
+						simFloat * dataf = (simFloat*)data;
+						geometry_msgs::TwistStamped tw;
+						tw.header.frame_id = objNameToFrameId(simGetObjectName(publishers[pubI].auxInt1));
+						tw.header.stamp = inf.headerInfo.stamp;
+						tw.twist.linear.x=dataf[0];
+						tw.twist.linear.y=dataf[1];
+						tw.twist.linear.z=dataf[2];
+						tw.twist.angular.x=dataf[3];
+						tw.twist.angular.y=dataf[4];
+						tw.twist.angular.z=dataf[5];
+						publishers[pubI].generalPublisher.publish(tw);
+					}
+					simReleaseBuffer(data);
+				}
+			}
+
+			if (publishers[pubI].cmdID==simros_strmcmd_get_transform)
+			{
+				float position[3];
+				float quaternion[4];
+				bool ignore = false;
+				int offspring = publishers[pubI].auxInt1;
+				int parent = publishers[pubI].auxInt2;
+				if (simGetObjectPosition(offspring,parent,position)==-1)
+					ignore=true;
+				if (simGetObjectQuaternion(offspring,parent,quaternion)==-1)
+					ignore=true;
+				if (!ignore)
+				{
+					if (parent==sim_handle_parent)
+						parent=simGetObjectParent(offspring);
+					std::string offspring_name = simGetObjectName(offspring);
+					std::string parent_name="world";
+					if (parent!=-1)
+					{
+						char* pname=simGetObjectName(parent);
+						parent_name=pname;
+						simReleaseBuffer(pname);
+					}
+					if (publishers[pubI].auxStr.size()>0)
+					{
+						// auxstr can be used to specify the names, in case the handles
+						// do not correspond to the exact names we want to use in
+						// frame_ids...
+						// Syntax "offspring_name%parent_name"
+						size_t pos = publishers[pubI].auxStr.find_first_of("%");
+						if ((pos == std::string::npos) || (pos > 0)) {
+							offspring_name = publishers[pubI].auxStr.substr(0,pos);
+						}
+						if ((pos != std::string::npos) && (pos != publishers[pubI].auxStr.size()-1)) {
+							parent_name = publishers[pubI].auxStr.substr(pos+1,std::string::npos);
+						}
+					}
+					offspring_name = objNameToFrameId(offspring_name);
+					parent_name = objNameToFrameId(parent_name);
+
+					tf::Transform transform;
+					tf::Quaternion q(quaternion[0],quaternion[1],quaternion[2],quaternion[3]);
+					transform.setRotation( q );
+					transform.setOrigin( tf::Vector3(position[0], position[1], position[2]) );
+					tf_broadcaster->sendTransform(tf::StampedTransform(transform, inf.headerInfo.stamp,
+								parent_name, offspring_name));
+				}
+			}
+			if (removeThisPublisher)
+			{
+				removePublisher(publishers[pubI].topicName.c_str(),true);
+				pubI--; // we have to reprocess this position
 			}
 			else
-				removeThisPublisher=true;
-		}
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_twist_status) 
-		{
-            simInt datalen = 0;
-            simChar * data;
-            data = simGetStringSignal(publishers[pubI].auxStr.c_str(),&datalen);
-            if (!data ||  (datalen != 6*sizeof(simFloat)))
-                removeThisPublisher = true;
-			else
 			{
-				simFloat * dataf = (simFloat*)data;
-				geometry_msgs::TwistStamped tw;
-				tw.header.frame_id = objNameToFrameId(simGetObjectName(publishers[pubI].auxInt1));
-				tw.header.stamp = inf.headerInfo.stamp;
-				tw.twist.linear.x=dataf[0];
-				tw.twist.linear.y=dataf[1];
-				tw.twist.linear.z=dataf[2];
-				tw.twist.angular.x=dataf[3];
-				tw.twist.angular.y=dataf[4];
-				tw.twist.angular.z=dataf[5];
-				publishers[pubI].generalPublisher.publish(tw);
-			}
-            simReleaseBuffer(data);
-        }
-
-		if (publishers[pubI].cmdID==simros_strmcmd_get_transform)
-		{
-            float position[3];
-            float quaternion[4];
-            bool ignore = false;
-            int offspring = publishers[pubI].auxInt1;
-            int parent = publishers[pubI].auxInt2;
-            if (simGetObjectPosition(offspring,parent,position)==-1)
-                ignore=true;
-            if (simGetObjectQuaternion(offspring,parent,quaternion)==-1)
-                ignore=true;
-            if (!ignore) 
-			{
-				if (parent==sim_handle_parent)
-					parent=simGetObjectParent(offspring);
-                std::string offspring_name = simGetObjectName(offspring);
-				std::string parent_name="world";
-				if (parent!=-1)
+				if (publishers[pubI].publishCnt!=0)
 				{
-					char* pname=simGetObjectName(parent);
-					parent_name=pname;
-					simReleaseBuffer(pname);
+					publishers[pubI].publishCnt--;
+					if (publishers[pubI].publishCnt==0)
+						publishers[pubI].publishCnt=-1; // we put this publisher to sleep
 				}
-                if (publishers[pubI].auxStr.size()>0)
-				{
-                    // auxstr can be used to specify the names, in case the handles
-                    // do not correspond to the exact names we want to use in
-                    // frame_ids...
-                    // Syntax "offspring_name%parent_name"
-                    size_t pos = publishers[pubI].auxStr.find_first_of("%");
-                    if ((pos == std::string::npos) || (pos > 0)) {
-                        offspring_name = publishers[pubI].auxStr.substr(0,pos);
-                    }
-                    if ((pos != std::string::npos) && (pos != publishers[pubI].auxStr.size()-1)) {
-                        parent_name = publishers[pubI].auxStr.substr(pos+1,std::string::npos);
-                    }
-                }
-                offspring_name = objNameToFrameId(offspring_name);
-                parent_name = objNameToFrameId(parent_name);
-                
-                tf::Transform transform;
-                tf::Quaternion q(quaternion[0],quaternion[1],quaternion[2],quaternion[3]);
-                transform.setRotation( q );
-                transform.setOrigin( tf::Vector3(position[0], position[1], position[2]) );
-                tf_broadcaster->sendTransform(tf::StampedTransform(transform, inf.headerInfo.stamp,
-                            parent_name, offspring_name));
-            }
-		}
-		if (removeThisPublisher)
-		{
-			removePublisher(publishers[pubI].topicName.c_str(),true);
-			pubI--; // we have to reprocess this position
+			}
 		}
 	}
 }
@@ -1583,11 +1801,67 @@ bool ROS_server::getObjectGroupData(int objectType,int dataType,std::vector<int>
 					floatData.push_back(0.0f);
 				}
 			}
+			if (dataType==16)
+			{ // joint type, mode and limit data
+				if (simGetObjectType(handle)==sim_object_joint_type)
+				{
+					float range[2];
+					simBool cyclic;
+					simGetJointInterval(handle,&cyclic,range);
+					if (cyclic)
+						range[1]=-1.0f;
+					int jointType=simGetJointType(handle);
+					int options;
+					int jointMode=simGetJointMode(handle,&options);
+					if (options&1)
+						jointMode|=65536;
+					intData.push_back(jointType);
+					intData.push_back(jointMode);
+					floatData.push_back(range[0]);
+					floatData.push_back(range[1]);
+				}
+				else
+				{ // this is not a joint!
+					intData.push_back(-1);
+					intData.push_back(-1);
+					floatData.push_back(0.0f);
+					floatData.push_back(0.0f);
+				}
+			}
+			if (dataType==17)
+			{ // object linear velocity
+				float linVel[3];
+				simGetObjectVelocity(handle,linVel,NULL);
+				floatData.push_back(linVel[0]);
+				floatData.push_back(linVel[1]);
+				floatData.push_back(linVel[2]);
+			}
+			if (dataType==18)
+			{ // object angular velocity
+				float angVel[3];
+				simGetObjectVelocity(handle,NULL,angVel);
+				floatData.push_back(angVel[0]);
+				floatData.push_back(angVel[1]);
+				floatData.push_back(angVel[2]);
+			}
+			if (dataType==19)
+			{ // object linear and angular velocity (twist data)
+				float linVel[3];
+				float angVel[3];
+				simGetObjectVelocity(handle,linVel,angVel);
+				floatData.push_back(linVel[0]);
+				floatData.push_back(linVel[1]);
+				floatData.push_back(linVel[2]);
+				floatData.push_back(angVel[0]);
+				floatData.push_back(angVel[1]);
+				floatData.push_back(angVel[2]);
+			}
 		}
 		return(true);
 	}
 	return(false);
 }
+
 
 bool ROS_server::streamVisionSensorImage(SPublisherData& pub, const ros::Time & now)
 {
@@ -1866,8 +2140,6 @@ void ROS_server::enableAPIServices()
 	simRosSetObjectQuaternionServer = node->advertiseService("simRosSetObjectQuaternion",ROS_server::simRosSetObjectQuaternionService);
 	simRosEnableSubscriberServer = node->advertiseService("simRosEnableSubscriber",ROS_server::simRosEnableSubscriberService);
 	simRosDisableSubscriberServer = node->advertiseService("simRosDisableSubscriber",ROS_server::simRosDisableSubscriberService);
-	simRosRMLPositionServer = node->advertiseService("simRosRMLPosition",ROS_server::simRosRMLPositionService);
-	simRosRMLVelocityServer = node->advertiseService("simRosRMLVelocity",ROS_server::simRosRMLVelocityService);
 	simRosSetJointStateServer = node->advertiseService("simRosSetJointState",ROS_server::simRosSetJointStateService);
 	simRosCreateDummyServer = node->advertiseService("simRosCreateDummy",ROS_server::simRosCreateDummyService);
 	simRosGetAndClearStringSignalServer = node->advertiseService("simRosGetAndClearStringSignal",ROS_server::simRosGetAndClearStringSignalService);
@@ -1968,8 +2240,6 @@ void ROS_server::disableAPIServices()
 	simRosSetObjectQuaternionServer.shutdown();
 	simRosEnableSubscriberServer.shutdown();
 	simRosDisableSubscriberServer.shutdown();
-	simRosRMLPositionServer.shutdown();
-	simRosRMLVelocityServer.shutdown();
 	simRosSetJointStateServer.shutdown();
 	simRosCreateDummyServer.shutdown();
 	simRosGetAndClearStringSignalServer.shutdown();
@@ -3142,7 +3412,7 @@ bool ROS_server::simRosEnablePublisherService(vrep_common::simRosEnablePublisher
 {
 	int simState=simGetSimulationState();
 	if (simState&sim_simulation_advancing)
-		res.effectiveTopicName=addPublisher(req.topicName.c_str(),req.queueSize,req.streamCmd,req.auxInt1,req.auxInt2,req.auxString.c_str());
+		res.effectiveTopicName=addPublisher(req.topicName.c_str(),req.queueSize,req.streamCmd,req.auxInt1,req.auxInt2,req.auxString.c_str(),0);
 	else
 		res.effectiveTopicName=""; // Error, simulation is not running!
 	return true;
@@ -3168,32 +3438,6 @@ bool ROS_server::simRosEnableSubscriberService(vrep_common::simRosEnableSubscrib
 bool ROS_server::simRosDisableSubscriberService(vrep_common::simRosDisableSubscriber::Request &req,vrep_common::simRosDisableSubscriber::Response &res)
 {
 	res.result=removeSubscriber(req.subscriberID);
-	return true;
-}
-
-bool ROS_server::simRosRMLPositionService(vrep_common::simRosRMLPosition::Request &req,vrep_common::simRosRMLPosition::Response &res)
-{
-	unsigned int dofs=(unsigned int)req.dofs;
-	if ( (dofs>=1)&&(req.currentPosVelAccel.size()>=dofs*3)&&(req.maxVelAccelJerk.size()>=dofs*3)&&(req.selection.size()>=dofs)&&(req.targetPosVel.size()>=dofs*2) )
-	{
-		res.newPosVelAccel.resize(dofs*3);
-		res.result=simRMLPosition(dofs,req.timeStep,req.flags,&req.currentPosVelAccel[0],&req.maxVelAccelJerk[0],&req.selection[0],&req.targetPosVel[0],&res.newPosVelAccel[0],NULL);
-	}
-	else
-		res.result=-43;
-	return true;
-}
-
-bool ROS_server::simRosRMLVelocityService(vrep_common::simRosRMLVelocity::Request &req,vrep_common::simRosRMLVelocity::Response &res)
-{
-	unsigned int dofs=(unsigned int)req.dofs;
-	if ( (dofs>=1)&&(req.currentPosVelAccel.size()>=dofs*3)&&(req.maxAccelJerk.size()>=dofs*2)&&(req.selection.size()>=dofs)&&(req.targetVel.size()>=dofs) )
-	{
-		res.newPosVelAccel.resize(dofs*3);
-		res.result=simRMLVelocity(dofs,req.timeStep,req.flags,&req.currentPosVelAccel[0],&req.maxAccelJerk[0],&req.selection[0],&req.targetVel[0],&res.newPosVelAccel[0],NULL);
-	}
-	else
-		res.result=-43;
 	return true;
 }
 

@@ -1,6 +1,6 @@
 // This file is part of the ROS PLUGIN for V-REP
 // 
-// Copyright 2006-2013 Dr. Marc Andreas Freese. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -14,16 +14,19 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// The ROS PLUGIN is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// THE ROS PLUGIN IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+// WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
+// AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
+// DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+// MISUSING THIS SOFTWARE.
+// 
+// See the GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
 // along with the ROS PLUGIN.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.0.4 on July 8th 2013
+// This file was automatically created for V-REP release V3.1.2 on June 16th 2014
 
 #ifndef ROS_SERVER_H
 #define ROS_SERVER_H
@@ -38,6 +41,8 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/Joy.h>
+#include <nav_msgs/Odometry.h>
 
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
@@ -150,8 +155,6 @@
 #include "vrep_common/simRosSetObjectQuaternion.h"
 #include "vrep_common/simRosEnableSubscriber.h"
 #include "vrep_common/simRosDisableSubscriber.h"
-#include "vrep_common/simRosRMLPosition.h"
-#include "vrep_common/simRosRMLVelocity.h"
 #include "vrep_common/simRosSetJointState.h"
 #include "vrep_common/simRosCreateDummy.h"
 #include "vrep_common/simRosGetAndClearStringSignal.h"
@@ -170,6 +173,7 @@ struct SPublisherData
 	int auxInt1;
 	int auxInt2;
 	std::string auxStr;
+	int publishCnt; // -1=publisher is asleep
 	std::string topicName;
 	ros::Publisher generalPublisher;
 	image_transport::Publisher imagePublisher;
@@ -188,14 +192,15 @@ class ROS_server
 		static bool mainScriptAboutToBeCalled();
 		static void simulationEnded();
 
-		static std::string addPublisher(const char* topicName,int queueSize,int streamCmd,int auxInt1,int auxInt2,const char* auxString);
+		static std::string addPublisher(const char* topicName,int queueSize,int streamCmd,int auxInt1,int auxInt2,const char* auxString,int publishCnt);
 		static int removePublisher(const char* topicName,bool ignoreReferenceCounter);
+		static int wakePublisher(const char* topicName,int publishCnt);
 
 		static int addSubscriber(const char* topicName,int queueSize,int streamCmd,int auxInt1,int auxInt2,const char* auxString);
 		static bool removeSubscriber(int subscriberID);
 
 	private:
-		ROS_server() {} 
+		ROS_server() {}; 
 		
 		static ros::NodeHandle* node;
         static tf::TransformBroadcaster* tf_broadcaster;
@@ -519,12 +524,6 @@ class ROS_server
 
 		static ros::ServiceServer simRosDisableSubscriberServer;
 		static bool simRosDisableSubscriberService(vrep_common::simRosDisableSubscriber::Request &req,vrep_common::simRosDisableSubscriber::Response &res);
-
-		static ros::ServiceServer simRosRMLPositionServer;
-		static bool simRosRMLPositionService(vrep_common::simRosRMLPosition::Request &req,vrep_common::simRosRMLPosition::Response &res);
-
-		static ros::ServiceServer simRosRMLVelocityServer;
-		static bool simRosRMLVelocityService(vrep_common::simRosRMLVelocity::Request &req,vrep_common::simRosRMLVelocity::Response &res);
 
 		static ros::ServiceServer simRosSetJointStateServer;
 		static bool simRosSetJointStateService(vrep_common::simRosSetJointState::Request &req,vrep_common::simRosSetJointState::Response &res);

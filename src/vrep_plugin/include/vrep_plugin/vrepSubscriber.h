@@ -1,6 +1,6 @@
 // This file is part of the ROS PLUGIN for V-REP
 // 
-// Copyright 2006-2013 Dr. Marc Andreas Freese. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -14,16 +14,19 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// The ROS PLUGIN is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// THE ROS PLUGIN IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+// WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
+// AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
+// DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+// MISUSING THIS SOFTWARE.
+// 
+// See the GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
 // along with the ROS PLUGIN.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.0.4 on July 8th 2013
+// This file was automatically created for V-REP release V3.1.2 on June 16th 2014
 
 #ifndef VREP_SUBSCRIBER_H
 #define VREP_SUBSCRIBER_H
@@ -34,6 +37,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Joy.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>
@@ -51,7 +55,24 @@
 #include "vrep_common/VisionSensorData.h"
 #include "vrep_common/VrepInfo.h"
 #include "vrep_common/JointSetStateData.h"
+//#include <trajectory_msgs/JointTrajectory.h>
 
+/*
+struct SJointTrajectory
+{
+	std::vector<std::string> jointNames;
+	std::vector<SJointTrajectoryPoint> points
+};
+
+struct SJointTrajectoryPoint
+{
+	std::vector<double> positions;
+	std::vector<double> velocities;
+	std::vector<double> accelerations;
+	std::vector<double> effort;
+	float timeFromStart;
+};
+*/
 
 class CSubscriberData
 {
@@ -107,7 +128,9 @@ public:
 	void setUIButtonPropertyCallback(const std_msgs::Int32::ConstPtr& prop);
 	void setUISlider(const std_msgs::Int32::ConstPtr& pos);
 	void setVisionSensorImageCallback(const sensor_msgs::Image::ConstPtr& image);
+	void setJoySensorCallback(const sensor_msgs::Joy::ConstPtr& joyPacket); 
 	void setJointStateCallback(const vrep_common::JointSetStateData::ConstPtr& data);
+//	void setJointTrajectoryCallback(const trajectory_msgs::JointTrajectory::ConstPtr& data);
 };
 
 #endif
