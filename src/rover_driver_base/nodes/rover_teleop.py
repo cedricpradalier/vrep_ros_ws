@@ -18,7 +18,7 @@ def talker():
     global last_joy
     rospy.init_node('vrep_ros_teleop')
     sub = rospy.Subscriber('~joy', Joy, joy_cb)
-    pub = rospy.Publisher('~twistCommand', Twist)
+    pub = rospy.Publisher('~twistCommand', Twist, queue_size=1)
     axis_linear_x = rospy.get_param("~axis_linear_x",1)
     axis_linear_y = rospy.get_param("~axis_linear_y",0)
     axis_angular = rospy.get_param("~axis_angular",3)

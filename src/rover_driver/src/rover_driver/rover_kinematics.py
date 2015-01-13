@@ -59,9 +59,9 @@ class RoverKinematics:
                 if motors.steering[k] <-pi/2:
                     motors.steering[k] += pi
                     motors.drive[k] = -motors.drive[k]
-                # print "%s: T %.2f %.2f %.2f V %.2f %.2f S %.2f D %.2f" % \
+                # rospy.loginfo("%s: T %.2f %.2f %.2f V %.2f %.2f S %.2f D %.2f" % \
                 #     (k,drive_pose[k]["x"],drive_pose[k]["y"],drive_pose[k]["z"],\
-                #     vw_x,vw_y,motors.steering[k]*180./pi,motors.drive[k])
+                #     vw_x,vw_y,motors.steering[k]*180./pi,motors.drive[k]))
         return motors
 
     def prepare_inversion_matrix(self,drive_cfg):
