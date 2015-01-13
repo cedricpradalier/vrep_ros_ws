@@ -46,7 +46,7 @@ class ModelPrediction:
         if (self.trigger == "command") \
             and len(self.state)==len(self.state_coef) \
             and len(self.command)==len(self.command_coef):
-            pred = sum([a*x for a,x in zip(self.state_coef,self.state)],0.0) + sum([b*u for b,u in zip(self.command_coef,self.command)],0.0)
+            pred = sum([-a*x for a,x in zip(self.state_coef,self.state)],0.0) + sum([b*u for b,u in zip(self.command_coef,self.command)],0.0)
             self.pub.publish(Float64(pred))
 
     def state_cb(self,msg):
@@ -62,7 +62,7 @@ class ModelPrediction:
         if (self.trigger == "state") \
             and len(self.state)==len(self.state_coef) \
             and len(self.command)==len(self.command_coef):
-            pred = sum([a*x for a,x in zip(self.state_coef,self.state)]) + sum([b*u for b,u in zip(self.command_coef,self.command)])
+            pred = sum([-a*x for a,x in zip(self.state_coef,self.state)]) + sum([b*u for b,u in zip(self.command_coef,self.command)])
             self.pub.publish(Float64(pred))
 
 

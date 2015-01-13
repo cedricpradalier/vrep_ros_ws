@@ -1,6 +1,6 @@
 // This file is part of the ROS PLUGIN for V-REP
 // 
-// Copyright 2006-2013 Dr. Marc Andreas Freese. All rights reserved. 
+// Copyright 2006-2014 Coppelia Robotics GmbH. All rights reserved. 
 // marc@coppeliarobotics.com
 // www.coppeliarobotics.com
 // 
@@ -14,21 +14,24 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// The ROS PLUGIN is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// THE ROS PLUGIN IS DISTRIBUTED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+// WARRANTY. THE USER WILL USE IT AT HIS/HER OWN RISK. THE ORIGINAL
+// AUTHORS AND COPPELIA ROBOTICS GMBH WILL NOT BE LIABLE FOR DATA LOSS,
+// DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+// MISUSING THIS SOFTWARE.
+// 
+// See the GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
 // along with the ROS PLUGIN.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------
 //
-// This file was automatically created for V-REP release V3.0.4 on July 8th 2013
+// This file was automatically created for V-REP release V3.1.2 on June 16th 2014
 
-#include "v_repLib.h"
+#include "../include/v_repLib.h"
 #include <boost/lexical_cast.hpp>
-#include "vrep_plugin/vrep_plugin.h"
-#include "vrep_plugin/ROS_server.h"
+#include "../include/vrep_plugin/vrep_plugin.h"
+#include "../include/vrep_plugin/ROS_server.h"
 
 #include "ros/ros.h"
 #include "std_msgs/Float32.h"
@@ -39,10 +42,13 @@
 #define PLUGIN_VERSION 2
 
 #define LUA_ENABLE_PUBLISHER			"simExtROS_enablePublisher"
-#define LUA_ENABLE_PUBLISHER_TIPS 	"string topicName=" LUA_ENABLE_PUBLISHER "(string topicName,number queueSize,number rosStreamCmd,number auxInt1,number auxInt2,string auxString)"
+#define LUA_ENABLE_PUBLISHER_TIPS 	"string topicName=" LUA_ENABLE_PUBLISHER "(string topicName,number queueSize,number rosStreamCmd,number auxInt1,number auxInt2,string auxString,number publishCnt=0)"
 
 #define LUA_DISABLE_PUBLISHER			"simExtROS_disablePublisher"
 #define LUA_DISABLE_PUBLISHER_TIPS 	"number referenceCounter=" LUA_DISABLE_PUBLISHER "(string topicName)"
+
+#define LUA_WAKE_PUBLISHER			"simExtROS_wakePublisher"
+#define LUA_WAKE_PUBLISHER_TIPS 	"number result=" LUA_WAKE_PUBLISHER "(string topicName,number publishCnt)"
 
 
 #define LUA_ENABLE_SUBSCRIBER			"simExtROS_enableSubscriber"
@@ -55,11 +61,10 @@ LIBRARY vrepLib; // the V-REP library that we will dynamically load and bind
 
 void LUA_ENABLE_PUBLISHER_CALLBACK(SLuaCallBack* p)
 { 
-	simLockInterface(1);
 	std::string effectiveTopicName;
 	if (p->inputArgCount>=6)
 	{ 
-		// Ok, we have at least 5 input argument
+		// Ok, we have at least 6 input argument
 		if (	(p->inputArgTypeAndSize[0*2+0]==sim_lua_arg_string) && 
 				(p->inputArgTypeAndSize[1*2+0]==sim_lua_arg_int) &&
 				(p->inputArgTypeAndSize[2*2+0]==sim_lua_arg_int) &&
@@ -73,17 +78,31 @@ void LUA_ENABLE_PUBLISHER_CALLBACK(SLuaCallBack* p)
 			int streamCmd=p->inputInt[1];
 			int auxInt1=p->inputInt[2];
 			int auxInt2=p->inputInt[3];
+			int publishCnt=0; // 0 is the default value for this optional argument
+			bool allIsFine=true;
+			if (p->inputArgCount>=7)
+			{ // Check the optional argument 'publishCnt':
+				if (p->inputArgTypeAndSize[6*2+0]==sim_lua_arg_int)
+					publishCnt=p->inputInt[4];
+				else
+					allIsFine=false;
+			}
+			
+			if (allIsFine)
+			{
+				int errorModeSaved;
+				simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
+				simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
 
-			int errorModeSaved;
-			simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
-			simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
+				effectiveTopicName=ROS_server::addPublisher(topicName.c_str(),queueSize,streamCmd,auxInt1,auxInt2,auxString.c_str(),publishCnt);
 
-			effectiveTopicName=ROS_server::addPublisher(topicName.c_str(),queueSize,streamCmd,auxInt1,auxInt2,auxString.c_str());
+				simSetIntegerParameter(sim_intparam_error_report_mode,errorModeSaved); // restore previous settings
 
-			simSetIntegerParameter(sim_intparam_error_report_mode,errorModeSaved); // restore previous settings
-
-			if (effectiveTopicName.length()==0)
-				simSetLastError(LUA_ENABLE_PUBLISHER, "Topic could not be published."); // output an error
+				if (effectiveTopicName.length()==0)
+					simSetLastError(LUA_ENABLE_PUBLISHER, "Topic could not be published."); // output an error
+			}
+			else
+				simSetLastError(LUA_ENABLE_PUBLISHER, "Wrong argument type/size."); // output an error
 		}
 		else
 			simSetLastError(LUA_ENABLE_PUBLISHER, "Wrong argument type/size."); // output an error
@@ -105,13 +124,10 @@ void LUA_ENABLE_PUBLISHER_CALLBACK(SLuaCallBack* p)
 			p->outputChar[i]=effectiveTopicName[i];
 		p->outputChar[effectiveTopicName.length()]=0;
 	}
-	
-	simLockInterface(0);
 }
 
 void LUA_DISABLE_PUBLISHER_CALLBACK(SLuaCallBack* p)
 { 
-	simLockInterface(1);
 	int result=-1;
 	if (p->inputArgCount>=1)
 	{ 
@@ -144,14 +160,49 @@ void LUA_DISABLE_PUBLISHER_CALLBACK(SLuaCallBack* p)
 	p->outputArgTypeAndSize[2*0+1]=1;
 	p->outputInt=(simInt*)simCreateBuffer(sizeof(simInt));
 	p->outputInt[0]=result;
-	
-	simLockInterface(0);
+}
+
+
+void LUA_WAKE_PUBLISHER_CALLBACK(SLuaCallBack* p)
+{ 
+	int result=-1;
+	if (p->inputArgCount>=2)
+	{ 
+		// Ok, we have at least 2 input arguments
+		if ( (p->inputArgTypeAndSize[0*2+0]==sim_lua_arg_string) &&
+			(p->inputArgTypeAndSize[1*2+0]==sim_lua_arg_int) )
+		{ // the input argument seem ok
+			std::string topicName(p->inputChar);
+
+			int errorModeSaved;
+			simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
+			simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
+
+			result=ROS_server::wakePublisher(topicName.c_str(),p->inputInt[0]);
+
+			simSetIntegerParameter(sim_intparam_error_report_mode,errorModeSaved); // restore previous settings
+
+			if (result==-2)
+				simSetLastError(LUA_WAKE_PUBLISHER, "Topic could not be found."); // output an error
+		}
+		else
+			simSetLastError(LUA_WAKE_PUBLISHER, "Wrong argument type/size."); // output an error
+	}
+	else
+		simSetLastError(LUA_WAKE_PUBLISHER, "Wrong number of arguments."); // output an error
+
+	// Now we prepare the return value:
+	p->outputArgCount=1;
+	p->outputArgTypeAndSize=(int*)simCreateBuffer(p->outputArgCount*2*sizeof(int)); 
+	p->outputArgTypeAndSize[2*0+0]=sim_lua_arg_int;	
+	p->outputArgTypeAndSize[2*0+1]=1;
+	p->outputInt=(simInt*)simCreateBuffer(sizeof(simInt));
+	p->outputInt[0]=result;
 }
 
 
 void LUA_ENABLE_SUBSCRIBER_CALLBACK(SLuaCallBack* p)
 { 
-	simLockInterface(1);
 	int result=-1;
 	if (p->inputArgCount>=6)
 	{ 
@@ -194,13 +245,10 @@ void LUA_ENABLE_SUBSCRIBER_CALLBACK(SLuaCallBack* p)
 	p->outputArgTypeAndSize[2*0+1]=1;
 	p->outputInt=(simInt*)simCreateBuffer(sizeof(simInt));
 	p->outputInt[0]=result;
-	
-	simLockInterface(0);
 }
 
 void LUA_DISABLE_SUBSCRIBER_CALLBACK(SLuaCallBack* p)
 { 
-	simLockInterface(1);
 	bool result=false;
 	if (p->inputArgCount>=1)
 	{ 
@@ -232,8 +280,6 @@ void LUA_DISABLE_SUBSCRIBER_CALLBACK(SLuaCallBack* p)
 	p->outputArgTypeAndSize[2*0+1]=1;
 	p->outputBool=(simBool*)simCreateBuffer(sizeof(simBool));
 	p->outputBool[0]=result;
-	
-	simLockInterface(0);
 }
 
 
@@ -287,14 +333,14 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 		return (0); //If the master is not running then the plugin is not loaded.
 	}
 	
-	simLockInterface(1);
-
-	int enablePublisherArgs[]={6,sim_lua_arg_string,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_string};
+	int enablePublisherArgs[]={7,sim_lua_arg_string,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_string,sim_lua_arg_int};
 	simRegisterCustomLuaFunction(LUA_ENABLE_PUBLISHER,LUA_ENABLE_PUBLISHER_TIPS,enablePublisherArgs,LUA_ENABLE_PUBLISHER_CALLBACK);
 
 	int disablePublisherArgs[]={1,sim_lua_arg_string};
 	simRegisterCustomLuaFunction(LUA_DISABLE_PUBLISHER,LUA_DISABLE_PUBLISHER_TIPS,disablePublisherArgs,LUA_DISABLE_PUBLISHER_CALLBACK);
 
+	int wakePublisherArgs[]={2,sim_lua_arg_string,sim_lua_arg_int};
+	simRegisterCustomLuaFunction(LUA_WAKE_PUBLISHER,LUA_WAKE_PUBLISHER_TIPS,wakePublisherArgs,LUA_WAKE_PUBLISHER_CALLBACK);
 
 	int enableSubscriberArgs[]={6,sim_lua_arg_string,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_int,sim_lua_arg_string};
 	simRegisterCustomLuaFunction(LUA_ENABLE_SUBSCRIBER,LUA_ENABLE_SUBSCRIBER_TIPS,enableSubscriberArgs,LUA_ENABLE_SUBSCRIBER_CALLBACK);
@@ -304,6 +350,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 
 
 	// Publisher constants:
+	simRegisterCustomLuaVariable("simros_strmcmd_get_laser_scanner_data",(boost::lexical_cast<std::string>(int(simros_strmcmd_get_laser_scanner_data))).c_str());	
+	simRegisterCustomLuaVariable("simros_strmcmd_get_odom_data",(boost::lexical_cast<std::string>(int(simros_strmcmd_get_odom_data))).c_str());
 	simRegisterCustomLuaVariable("simros_strmcmd_get_object_selection",(boost::lexical_cast<std::string>(int(simros_strmcmd_get_object_selection))).c_str());
 	simRegisterCustomLuaVariable("simros_strmcmd_get_array_parameter",(boost::lexical_cast<std::string>(int(simros_strmcmd_get_array_parameter))).c_str());
 	simRegisterCustomLuaVariable("simros_strmcmd_get_boolean_parameter",(boost::lexical_cast<std::string>(int(simros_strmcmd_get_boolean_parameter))).c_str());
@@ -372,8 +420,8 @@ VREP_DLLEXPORT unsigned char v_repStart(void* reservedPointer,int reservedInt)
 	simRegisterCustomLuaVariable("simros_strmcmd_set_string_signal",(boost::lexical_cast<std::string>(int(simros_strmcmd_set_string_signal))).c_str());
 	simRegisterCustomLuaVariable("simros_strmcmd_append_string_signal",(boost::lexical_cast<std::string>(int(simros_strmcmd_append_string_signal))).c_str());
 	simRegisterCustomLuaVariable("simros_strmcmd_set_twist_command",(boost::lexical_cast<std::string>(int(simros_strmcmd_set_twist_command))).c_str());
-
-	simLockInterface(0);
+	simRegisterCustomLuaVariable("simros_strmcmd_set_joy_sensor",(boost::lexical_cast<std::string>(int(simros_strmcmd_set_joy_sensor))).c_str());
+//	simRegisterCustomLuaVariable("simros_strmcmd_set_joint_trajectory",(boost::lexical_cast<std::string>(int(simros_strmcmd_set_joint_trajectory))).c_str());
 
 	return(PLUGIN_VERSION); // initialization went fine, we return the version number of this plugin (can be queried with simGetModuleName)
 }
@@ -389,8 +437,7 @@ VREP_DLLEXPORT void v_repEnd()
 VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customData,int* replyData)
 { 
 	// This is called quite often. Just watch out for messages/events you want to handle
-	// Keep following 5 lines at the beginning and unchanged:
-	simLockInterface(1);
+	// Keep following 4 lines at the beginning and unchanged:
 	int errorModeSaved;
 	simGetIntegerParameter(sim_intparam_error_report_mode,&errorModeSaved);
 	simSetIntegerParameter(sim_intparam_error_report_mode,sim_api_errormessage_ignore);
@@ -431,7 +478,6 @@ VREP_DLLEXPORT void* v_repMessage(int message,int* auxiliaryData,void* customDat
 
 	// Keep following unchanged:
 	simSetIntegerParameter(sim_intparam_error_report_mode,errorModeSaved); // restore previous settings
-	simLockInterface(0);
 	return(retVal);
 }
 
