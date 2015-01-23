@@ -12,7 +12,7 @@ class BlobFollower:
         self.blob = None
         self.info = None
         rospy.init_node('blob_follow')
-        self.pub = rospy.Publisher("~twistOut",Twist)
+        self.pub = rospy.Publisher("~twistOut",Twist,queue_size=1)
         rospy.Subscriber("~blob",RegionOfInterest,self.store_blob)
         rospy.Subscriber("~info",CameraInfo,self.store_info)
 
