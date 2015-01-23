@@ -31,7 +31,7 @@ class FloorMapper:
         self.floor_scale = self.floor_map.width / image_extent
 
         self.listener = tf.TransformListener()
-        self.pub = rospy.Publisher("~floor",Image)
+        self.pub = rospy.Publisher("~floor",Image,queue_size=1)
         rospy.Subscriber("~probabilities",Image,self.store_proba)
         rospy.Subscriber("~info",CameraInfo,self.store_info)
         rospy.loginfo("Waiting for first proba and camera info")

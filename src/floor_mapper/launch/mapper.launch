@@ -20,7 +20,7 @@
       <remap from="/teleop/twistCommand" to="/vrep/follower/twistCommand"/>
   </node>
 
-  <node pkg="floor_mapper_base" type="floor_projector.py" name="floor_projector" output="screen">
+  <node pkg="floor_mapper" type="floor_projector.py" name="floor_projector" output="screen">
       <param name="floor_size_pix" value="500"/>
       <param name="horizon_offset_pix" value="20"/>
       <param name="floor_size_meter" value="5.0"/>
@@ -29,7 +29,7 @@
       <remap from="/floor_projector/info" to="/vrep/follower/visionSensorInfo"/>
   </node>
 
-  <node pkg="floor_mapper_base" type="floor_mapper" name="floor_mapper" output="screen">
+  <node pkg="floor_mapper" type="floor_mapper" name="floor_mapper" output="screen">
       <param name="floor_size_pix" value="1000"/>
       <param name="floor_size_meter" value="50.0"/>
       <param name="projected_floor_size_meter" value="5.0"/>

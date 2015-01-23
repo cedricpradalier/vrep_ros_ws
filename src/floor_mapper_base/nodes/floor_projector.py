@@ -44,9 +44,8 @@ class FloorMapper:
             return
         # print "Processing"
         self.timestamp = proba.header.stamp
-        I = self.br.imgmsg_to_cv(proba,"8UC1")
-        self.proba = cv.CloneMat(I)
-        cv.Threshold(I,self.proba,0xFE,0xFE,cv.CV_THRESH_TRUNC)
+        I = self.br.imgmsg_to_cv2(proba,"8UC1")
+        self.proba = cv.threshold(I,0xFE,0xFE,cv.CV_THRESH_TRUNC)
         try:
             # (trans,rot) = self.listener.lookupTransform(proba.header.frame_id, '/world', proba.header.stamp)
             self.listener.waitForTransform(proba.header.frame_id,self.target_frame,proba.header.stamp,rospy.Duration(1.0))
@@ -77,10 +76,10 @@ class FloorMapper:
             # print "Homography"
             # print numpy.asarray(self.H)
 
-            cv.WarpPerspective(cv.GetSubRect(self.proba,(0,self.horizon_offset,self.proba.width,self.proba.height-self.horizon_offset)),
+            self.floor_map = cv.warpPerspective(cv.GetSubRect(self.proba,(0,self.horizon_offset,self.proba.width,self.proba.height-self.horizon_offset)),
                     self.floor_map,self.H, flags=cv.CV_INTER_NN+cv.CV_WARP_FILL_OUTLIERS , fillval=0xFF)
 
-            msg = self.br.cv_to_imgmsg(self.floor_map)
+            msg = self.br.cv3_to_imgmsg(self.floor_map)
             msg.header.stamp = proba.header.stamp
             msg.header.frame_id = self.target_frame
             self.pub.publish(msg)
