@@ -23,7 +23,7 @@ import cv2
 
 # local module
 import rospy
-from sensor_msgs.msg import RegionOfInterest, Image
+from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
 def is_rect_nonzero(r):
@@ -122,7 +122,7 @@ class App(object):
             except:
                 print track_box
             x,y,w,h = self.track_window
-            self.bbpub.publish(RegionOfInterest(x,y, w,h,False))
+            print("Tracking window %d,%d - %dx%d"%(x,y,w,h))
             proba_msg = self.br.cv2_to_imgmsg(self.backproject,"mono8")
             proba_msg.header = imgmsg.header
             self.bppub.publish(proba_msg)
@@ -131,7 +131,6 @@ class App(object):
         self.backproject_mode = False
         rospy.init_node('blob_tracker')
         image_topic = rospy.resolve_name("image")
-        self.bbpub = rospy.Publisher("~blob",RegionOfInterest,queue_size=1)
         self.bppub = rospy.Publisher("~backproject",Image,queue_size=1)
         self.disp_hist = rospy.get_param("~display_histogram",False)
         rospy.Subscriber(image_topic, Image, self.detect_and_draw)
