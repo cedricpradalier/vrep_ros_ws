@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 import roslib
-roslib.load_manifest('floor_mapper')
+roslib.load_manifest('floor_mapper_base')
 
 import rospy
 from sensor_msgs.msg import RegionOfInterest
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
-import cv2.cv as cv
 from cv_bridge import CvBridge
+import cv2
 import math
 import tf
 import numpy
@@ -20,22 +20,23 @@ class FloorMapper:
         self.br = CvBridge()
         rospy.init_node('floor_projector')
 
-        image_size = rospy.get_param("~floor_size_pix",1000)
+        self.image_size = rospy.get_param("~floor_size_pix",1000)
         image_extent = rospy.get_param("~floor_size_meter",5.0)
         self.target_frame = rospy.get_param("~target_frame","/body")
         self.horizon_offset = rospy.get_param("~horizon_offset_pix",20)
+        self.display_map = rospy.get_param("~display_map",True)
 
-        self.floor_map = cv.CreateImage( (image_size,image_size), 8, 1)
+        self.floor_map = numpy.zeros((self.image_size,self.image_size))
         self.x_floor = 0.0
-        self.y_floor = self.floor_map.height / 2.0
-        self.floor_scale = self.floor_map.width / image_extent
+        self.y_floor = self.image_size / 2.0
+        self.floor_scale = self.image_size / image_extent
 
         self.listener = tf.TransformListener()
-        self.pub = rospy.Publisher("~floor",Image)
+        self.pub = rospy.Publisher("~floor",Image,queue_size=1)
         rospy.Subscriber("~probabilities",Image,self.store_proba)
         rospy.Subscriber("~info",CameraInfo,self.store_info)
         rospy.loginfo("Waiting for first proba and camera info")
-        while (not rospy.is_shutdown()) and ((not self.info) or (not self.proba)):
+        while (not rospy.is_shutdown()) and ((self.info is None) or (self.proba is None)):
             rospy.sleep(0.1)
 
     def store_proba(self,proba):
@@ -45,7 +46,7 @@ class FloorMapper:
         # print "Processing"
         self.timestamp = proba.header.stamp
         I = self.br.imgmsg_to_cv2(proba,"8UC1")
-        self.proba = cv.threshold(I,0xFE,0xFE,cv.CV_THRESH_TRUNC)
+        t, self.proba = cv2.threshold(I,0xFE,0xFE,cv2.THRESH_TRUNC)
         try:
             # (trans,rot) = self.listener.lookupTransform(proba.header.frame_id, '/world', proba.header.stamp)
             self.listener.waitForTransform(proba.header.frame_id,self.target_frame,proba.header.stamp,rospy.Duration(1.0))
@@ -61,7 +62,7 @@ class FloorMapper:
             # print "Origin"
             # print origin
 
-            self.dstpts2d = cv.CreateMat(4,2,cv.CV_32F)
+            self.dstpts2d = numpy.zeros((4,2))
             for i in range(4):
                 self.dstpts2d[i,0] = self.x_floor + (origin[0,0] - dstdir[i][0,0]*origin[2,0]/dstdir[i][2,0])*self.floor_scale
                 self.dstpts2d[i,1] = self.y_floor - (origin[1,0] - dstdir[i][1,0]*origin[2,0]/dstdir[i][2,0])*self.floor_scale
@@ -71,19 +72,31 @@ class FloorMapper:
             # print numpy.asarray(self.srcpts2d)
             # print "Dest points"
             # print numpy.asarray(self.dstpts2d)
-            self.H = cv.CreateMat(3,3,cv.CV_32F)
-            cv.FindHomography(self.srcpts2d,self.dstpts2d,self.H)
+            self.H,_ = cv2.findHomography(self.srcpts2d,self.dstpts2d)
             # print "Homography"
+            # print self.H
             # print numpy.asarray(self.H)
 
-            self.floor_map = cv.warpPerspective(cv.GetSubRect(self.proba,(0,self.horizon_offset,self.proba.width,self.proba.height-self.horizon_offset)),
-                    self.floor_map,self.H, flags=cv.CV_INTER_NN+cv.CV_WARP_FILL_OUTLIERS , fillval=0xFF)
+            size = (self.proba.shape[0]-self.horizon_offset,self.proba.shape[1])
+            # print size
 
-            msg = self.br.cv3_to_imgmsg(self.floor_map)
+            self.floor_map = cv2.warpPerspective(self.proba[self.horizon_offset:,:],
+                    self.H, (self.image_size,self.image_size), flags=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT, borderValue=0xFF)
+
+            # cv2.imshow("proba",self.proba[self.horizon_offset:,:])
+            # cv2.imshow("floor",self.floor_map)
+            # cv2.waitKey(10)
+            msg = self.br.cv2_to_imgmsg(self.floor_map,"mono8")
             msg.header.stamp = proba.header.stamp
             msg.header.frame_id = self.target_frame
             self.pub.publish(msg)
-            # print "Publishing image"
+            # print "Publishing image : " + str(self.display_map)
+            if self.display_map:
+                marked=cv2.cvtColor(self.floor_map,cv2.COLOR_GRAY2RGB)
+                idx=numpy.nonzero(self.floor_map == 0xFF)
+                marked[idx] = (255,0,0)
+                cv2.imshow("floor",marked)
+                cv2.waitKey(10)
             
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             print "Exception while looking for transform"
@@ -105,7 +118,7 @@ class FloorMapper:
             self.horizon_offset = int(math.ceil(info.height/2. + self.horizon_offset))
             srcpts = [[0,info.height-1],[info.width-1,info.height-1],\
                     [0,self.horizon_offset], [info.width-1,self.horizon_offset]]
-            self.srcpts2d = cv.CreateMat(4,2,cv.CV_32F)
+            self.srcpts2d = numpy.zeros((4,2))
             for i in range(4):
                 self.srcpts2d[i,0] = srcpts[i][0]
                 self.srcpts2d[i,1] = srcpts[i][1] - self.horizon_offset
