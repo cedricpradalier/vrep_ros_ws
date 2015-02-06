@@ -45,7 +45,11 @@ class FloorMapper:
             return
         # print "Processing"
         self.timestamp = proba.header.stamp
-        I = self.br.imgmsg_to_cv2(proba,"8UC1")
+        if proba.encoding == "rgb8":
+            I = self.br.imgmsg_to_cv2(proba,"rgb8")
+            I = cv2.cvtColor(I,cv2.COLOR_RGB2GRAY)
+        else:
+            I = self.br.imgmsg_to_cv2(proba,"mono8")
         t, self.proba = cv2.threshold(I,0xFE,0xFE,cv2.THRESH_TRUNC)
         try:
             # (trans,rot) = self.listener.lookupTransform(proba.header.frame_id, '/world', proba.header.stamp)
