@@ -30,13 +30,13 @@
     <node pkg="rover_driver_base" type="rover_command.py" name="rover" output="screen">
         <param name="rover_name" value="rover"/>
         <param name="skidsteer" value="false"/>
+        <param name="check_timeout" value="false"/>
     </node>
 
-    <node pkg="ar_loc_base" type="rover_loc.py" name="loc" output="screen">
+    <node pkg="ar_slam_base" type="rover_mapping.py" name="loc" output="screen">
         <param name="rover_name" value="rover"/>
+        <param name="ignore_id" value="False"/>
         <param name="target_frame" value="/world"/>
-        <!-- Valid value for filter name: "odo", "kalman", "particle" -->
-        <param name="filter_name" value="odo"/>
         <!-- Expected precision of wheel displacement measurement (in meter) -->
         <param name="encoder_precision" value="0.05"/>
         <!-- Expected precision of ar_tag localisation (in meter) -->
