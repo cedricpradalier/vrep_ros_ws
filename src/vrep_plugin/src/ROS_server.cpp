@@ -54,10 +54,18 @@ int ROS_server::_simulationFrameID=-1;
 
 static std::string objNameToFrameId(const std::string & name) 
 {
-	std::string slash("/");
-	if (name[0] == '/') 
-		return(name);
-	return(slash+name);
+	std::string slash("/"), out;
+	if (name[0] == '/') {
+		out = name;
+    } else {
+		out = slash + name;
+    }
+    for (size_t i=0;i<out.size();i++) {
+        if (out[i]=='#') {
+            out[i] = '_';
+        }
+    }
+    return out;
 }
 
 struct SPointCloudPublisherData : public SSpecificPublisherData
@@ -313,6 +321,11 @@ std::string ROS_server::addPublisher(const char* topicName,int queueSize,int str
 	}
 	// 2. Check if we have already such a topic name. If yes, generate a new name:
 	std::string nm(topicName);
+    for (size_t i=0;i<nm.size();i++) {
+        if (nm[i] == '#') {
+            nm[i]='_';
+        }
+    }
 	ind=getPublisherIndexFromTopicName(topicName);
 	if ( (ind==-1)&&(nm.compare("info")==0) )
 	{ // special case: the info stream is handled differently (always active when V-REP is running, not only during simulations)
@@ -2009,7 +2022,13 @@ int ROS_server::addSubscriber(const char* topicName,int queueSize,int streamCmd,
 	if (streamCmd>=simros_strmcmdreserved_start)
 		return(-1);
 	// 2. Try to add a new subscriber with the given topic name:
-	CSubscriberData* sub=new CSubscriberData(node,topicName,queueSize,streamCmd,auxInt1,auxInt2,auxString,&images_streamer,imgStreamerCnt);
+	std::string nm(topicName);
+    for (size_t i=0;i<nm.size();i++) {
+        if (nm[i] == '#') {
+            nm[i]='_';
+        }
+    }
+	CSubscriberData* sub=new CSubscriberData(node,nm.c_str(),queueSize,streamCmd,auxInt1,auxInt2,auxString,&images_streamer,imgStreamerCnt);
 	if (sub->getIsValid())
 	{
 		subscribers.push_back(sub);
