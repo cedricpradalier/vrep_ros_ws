@@ -83,6 +83,8 @@ class RoverKinematics:
             ds = (motor_state_t2.drive[k] - motor_state_t1.drive[k]) % (2*pi)
             if ds>pi:
                 ds -= 2*pi
+            if ds<-pi:
+                ds += 2*pi
             ds *= drive_cfg[k].radius
             S[2*i+0,0] = ds*cos(beta)
             S[2*i+1,0] = ds*sin(beta)

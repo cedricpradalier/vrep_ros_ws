@@ -39,7 +39,7 @@ class RoverOdo(RoverKinematics):
         theta = self.X[2,0]
         Rtheta = mat([[cos(theta), -sin(theta), 0], 
                       [sin(theta),  cos(theta), 0],
-                      [         0,           1, 0]]);
+                      [         0,           0, 1]]);
         # Estimate DeltaX using the pseudo-inverse method
         DeltaX = iW*S
         self.X = self.X + Rtheta*DeltaX

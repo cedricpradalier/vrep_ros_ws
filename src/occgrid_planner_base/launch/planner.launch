@@ -1,6 +1,6 @@
 <launch>
 
-  <node pkg="occgrid_planner_base" type="occgrid_planner_base" name="planner" output="screen">
+  <node pkg="occgrid_planner_base" type="occgrid_planner_b" name="planner" output="screen">
     <param name="neighbourhood" value="8"/>
     <param name="base_frame" value="/body"/>
     <param name="debug" value="False"/>
@@ -9,14 +9,14 @@
   </node>
 
 
-  <node pkg="occgrid_planner_base" type="path_optimizer" name="path_optimizer" output="screen">
+  <node pkg="occgrid_planner_base" type="path_optimizer_b" name="path_optimizer" output="screen">
       <param name="max_acceleration" value="0.3"/> 
       <param name="max_braking" value="0.1"/> 
       <param name="velocity" value="0.1"/> 
       <remap from="/path_optimizer/path" to="/planner/path"/>
   </node>
 
-  <node pkg="occgrid_planner_base" type="path_follower" name="path_follower" output="screen">
+  <node pkg="occgrid_planner_base" type="path_follower_b" name="path_follower" output="screen">
       <param name="Kx" value="1.0"/>
       <param name="Ky" value="1.0"/>
       <param name="Ktheta" value="1.0"/>

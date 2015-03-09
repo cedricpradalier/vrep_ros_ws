@@ -113,10 +113,11 @@ class App(object):
             prob &= mask
             term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
             track_box, self.track_window = cv2.CamShift(prob, self.track_window, term_crit)
+            print prob.shape
             self.backproject = prob[...,np.newaxis].copy()
 
             if self.show_backproj:
-                self.frame[:] = self.backproject
+                self.frame = self.backproject.copy()
             try:
                 cv2.ellipse(self.frame, track_box, (0, 0, 255), 2)
             except:
@@ -126,6 +127,14 @@ class App(object):
             proba_msg = self.br.cv2_to_imgmsg(self.backproject,"mono8")
             proba_msg.header = imgmsg.header
             self.bppub.publish(proba_msg)
+
+        if not self.pause:
+            if not self.backproject_mode:
+                cv2.imshow( "camshift", self.frame )
+            else:
+                cv2.imshow( "camshift", self.backproject)
+            if self.disp_hist:
+                cv2.imshow( "Histogram", self.hue_histogram_as_image(self.hist))
 
     def run(self):
         self.backproject_mode = False
@@ -138,13 +147,6 @@ class App(object):
         rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             # rospy.spin_once()
-            if not self.pause:
-                if not self.backproject_mode:
-                    cv2.imshow( "camshift", self.frame )
-                else:
-                    cv2.imshow( "camshift", self.backproject)
-                if self.disp_hist:
-                    cv2.imshow( "Histogram", self.hue_histogram_as_image(self.hist))
             c = cv2.waitKey(7) & 0x0FF
             if c == 27 or c == ord("q"):
                 rospy.signal_shutdown("OpenCV said so")

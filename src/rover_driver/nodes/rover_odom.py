@@ -10,7 +10,7 @@ import message_filters
 import numpy
 from numpy.linalg import pinv
 
-from rover_kinematics import *
+from rover_driver.rover_kinematics import *
 
 
 class RoverDriver:
