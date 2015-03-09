@@ -119,7 +119,7 @@ class RoverLoc:
 
     def compass_cb(self, value):
         self.filter.update_compass(value.data,self.compass_precision)
-        self.filter.publish(self.pose_pub,self.pose_with_cov_pub,self.target_frame,rospy.Time.now())
+        self.filter.publish(self.pose_pub,self.target_frame,rospy.Time.now())
 
     def run(self):
         timeout = True

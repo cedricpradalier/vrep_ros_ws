@@ -88,7 +88,7 @@ class RoverKF(RoverKinematics):
         C[ 6] = self.P[1,0]; C[ 7] = self.P[1,1]; C[11] = self.P[1,2]
         C[30] = self.P[2,0]; C[31] = self.P[2,1]; C[35] = self.P[2,2]
         pose.pose.covariance = C
-        self.pose_with_covariance.publish(pose)
+        self.pose_with_cov_pub.publish(pose)
         marker = Marker()
         marker.header = pose.header
         marker.ns = "kf_uncertainty"
