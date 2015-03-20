@@ -10,7 +10,7 @@ import message_filters
 from math import atan2, hypot, pi, cos, sin, fmod
 
 def norm_angle(x):
-    return fmod(x+pi,2*pi)-pi
+    return (x+pi)%(2*pi)-pi
 
 
 class BubbleOdom:
@@ -65,7 +65,7 @@ class BubbleOdom:
         dtheta = (dright - dleft)/self.e
         # print [dleft, dright, dx, dy ,dtheta]
         self.pose["x"] += dx * cos(self.pose["theta"]) - dy * sin(self.pose["theta"])
-        self.pose["y"] += dx * sin(self.pose["theta"]) + dy * cos(self.pose["theta"])
+        self.pose["y"] += dx * sin(self.pose["theta"]) + dx * cos(self.pose["theta"])
         self.pose["theta"] += dtheta
         self.broadcaster.sendTransform((self.pose["x"], self.pose["y"], 0),
                      tf.transformations.quaternion_from_euler(0, 0, self.pose["theta"]),

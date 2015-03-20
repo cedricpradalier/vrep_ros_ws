@@ -317,7 +317,15 @@ int main(int argc, char * argv[])
         ros::spinOnce();
         cv::waitKey(50);
     }
+#if 0
     // TODO: implement a security layer
+    ros::Rate rate(1);
+    while (ros::ok()) {
+        ros::spinOnce();
+        // ...
+        rate.sleep();
+    }
+#endif
 }
 
 
