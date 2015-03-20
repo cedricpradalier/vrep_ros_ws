@@ -17,6 +17,9 @@ class BubbleOdom:
     def __init__(self):
         rospy.init_node('bubble_odom')
         rospy.loginfo("Starting bubble rob odometry")
+        self.body_frame = rospy.get_param("~body_frame","/base_link")
+        self.odom_frame = rospy.get_param("~odom_frame","/odom")
+        self.vrep_prefix = rospy.get_param("~vrep_prefix","")
         self.last_cmd = rospy.Time.now()
         self.listener = tf.TransformListener()
         self.broadcaster = tf.TransformBroadcaster()
@@ -27,15 +30,15 @@ class BubbleOdom:
         self.right_prev = None
         self.pose = {"x":0, "y":0, "theta":0}
         rospy.sleep(0.5)
-        ((_,yl,z),_) = self.listener.lookupTransform('/body', '/left_wheel', rospy.Time(0))
-        ((_,yr,_),_) = self.listener.lookupTransform('/body', '/right_wheel', rospy.Time(0))
+        ((_,yl,z),_) = self.listener.lookupTransform(self.body_frame, '/left_wheel', rospy.Time(0))
+        ((_,yr,_),_) = self.listener.lookupTransform(self.body_frame, '/right_wheel', rospy.Time(0))
         self.e = abs(yl - yr)
         self.wheel_radius = z
         print "Inter wheel and radius : %f %f" % (self.e,self.wheel_radius)
 
 
-        self.drive_sub["Left"] = message_filters.Subscriber("/vrep/leftWheelEncoder", JointState)
-        self.drive_sub["Right"] = message_filters.Subscriber("/vrep/rightWheelEncoder", JointState)
+        self.drive_sub["Left"] = message_filters.Subscriber(self.vrep_prefix+"/leftWheelEncoder", JointState)
+        self.drive_sub["Right"] = message_filters.Subscriber(self.vrep_prefix+"/rightWheelEncoder", JointState)
         self.ts = message_filters.TimeSynchronizer([self.drive_sub["Left"],self.drive_sub["Right"]], 10)
         self.ts.registerCallback(self.sync_odo_cb)
 
@@ -66,7 +69,7 @@ class BubbleOdom:
         self.pose["theta"] += dtheta
         self.broadcaster.sendTransform((self.pose["x"], self.pose["y"], 0),
                      tf.transformations.quaternion_from_euler(0, 0, self.pose["theta"]),
-                     left.header.stamp, "/body", "/odom")
+                     left.header.stamp, self.body_frame, self.odom_frame)
         self.left_prev = left
         self.right_prev = right
 

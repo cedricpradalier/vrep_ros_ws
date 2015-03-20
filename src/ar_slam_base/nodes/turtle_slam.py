@@ -6,11 +6,17 @@ import rospy
 import tf
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import PointStamped, PoseStamped
+from tf.transformations import euler_from_matrix, decompose_matrix, quaternion_from_euler
 import message_filters
+import threading
 import numpy
-from numpy import mat
+from numpy import mat,vstack,diag, zeros, eye
 from numpy.linalg import inv
-from math import atan2, hypot, pi, cos, sin, fmod
+from math import atan2, hypot, pi, cos, sin, fmod, sqrt
+
+from ar_track_alvar_msgs.msg import AlvarMarkers
 
 def norm_angle(x):
     return fmod(x+pi,2*pi)-pi
@@ -20,16 +26,16 @@ class BubbleSLAM:
     def __init__(self):
         rospy.init_node('bubble_slam')
         rospy.loginfo("Starting bubble rob slam")
-        self.ignore_id = rospy.get_param("~ignore_id",self.ignore_id)
-        self.target_frame = rospy.get_param("~target_frame",self.target_frame)
-        self.body_frame = rospy.get_param("~body_frame",self.body_frame)
-        self.odom_frame = rospy.get_param("~odom_frame",self.odom_frame)
-        self.ar_precision = rospy.get_param("~ar_precision",self.ar_precision)
-        self.position_uncertainty = rospy.get_param("~position_uncertainty",self.position_uncertainty)
-        self.angular_uncertainty = rospy.get_param("~angular_uncertainty",self.angular_uncertainty)
-        self.initial_x = rospy.get_param("~initial_x",self.initial_x)
-        self.initial_y = rospy.get_param("~initial_y",self.initial_y)
-        self.initial_theta = rospy.get_param("~initial_theta",self.initial_theta)
+        self.ignore_id = rospy.get_param("~ignore_id",False)
+        self.target_frame = rospy.get_param("~target_frame","/map")
+        self.body_frame = rospy.get_param("~body_frame","/base_link")
+        self.odom_frame = rospy.get_param("~odom_frame","/odom")
+        self.ar_precision = rospy.get_param("~ar_precision",0.5)
+        self.position_uncertainty = rospy.get_param("~position_uncertainty",0.01)
+        self.angular_uncertainty = rospy.get_param("~angular_uncertainty",0.01)
+        self.initial_x = rospy.get_param("~initial_x",0.0)
+        self.initial_y = rospy.get_param("~initial_y",0.0)
+        self.initial_theta = rospy.get_param("~initial_theta",0.0)
         # instantiate the right filter based on launch parameters
         initial_pose = [self.initial_x, self.initial_y, self.initial_theta]
         initial_uncertainty = [0.01, 0.01, 0.01]
@@ -46,9 +52,9 @@ class BubbleSLAM:
 
         rospy.sleep(1.0);
         now = rospy.Time.now()
-        self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(1.0))
-        (trans,rot) = listener.lookupTransform(self.odom_frame,self.body_frame, now)
-        self.old_odom = listener.fromTranslationRotation(trans,rot)
+        self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(5.0))
+        (trans,rot) = self.listener.lookupTransform(self.odom_frame,self.body_frame, now)
+        self.old_odom = mat(self.listener.fromTranslationRotation(trans,rot))
 
 
 
@@ -61,18 +67,23 @@ class BubbleSLAM:
                       [         0,           0, 1, 0],
                       [         0,           0, 0, 1],
                       ]);
-        pose_mat = Delta * mat;
+        pose_mat = Delta * pose_mat;
         self.X[0:2,0] = pose_mat[0:2,3:4]
-        euler_from_matrix(pose_mat[0:3,0:3], 'rxyz')
+        euler = euler_from_matrix(pose_mat[0:3,0:3], 'rxyz')
         self.X[2,0] = euler[2]; # Ignore the others
         Jx = mat([[1, 0, -sin(theta)*Delta[0,3]-cos(theta)*Delta[1,3]],
                   [0, 1,  cos(theta)*Delta[0,3]-sin(theta)*Delta[1,3]],
                   [0, 0,                       1                       ]])
-        Js = Rtheta*iW
         Qs = mat(diag([self.position_uncertainty**2,self.position_uncertainty**2,self.angular_uncertainty**2]))
         P = self.P[0:3,0:3]
         self.P[0:3,0:3] = Jx * P * Jx.T + Qs 
         return (self.X,self.P)
+
+    def getRotation(self, theta):
+        R = mat(zeros((2,2)))
+        R[0,0] = cos(theta); R[0,1] = -sin(theta)
+        R[1,0] = sin(theta); R[1,1] = cos(theta)
+        return R
 
 
     def update_ar(self, Z, id, uncertainty):
@@ -127,8 +138,11 @@ class BubbleSLAM:
         while not rospy.is_shutdown():
             now = rospy.Time.now()
             self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(1.0))
-            (trans,rot) = listener.lookupTransform(self.odom_frame,self.body_frame, now)
-            new_odom = listener.fromTranslationRotation(trans,rot)
+            (trans,rot) = self.listener.lookupTransform(self.odom_frame,self.body_frame, now)
+            new_odom = mat(self.listener.fromTranslationRotation(trans,rot))
+            # print "================================================"
+            # print new_odom
+            # print self.old_odom
             odom = new_odom * inv(self.old_odom)
             self.old_odom = new_odom
             self.lock.acquire()
@@ -142,8 +156,91 @@ class BubbleSLAM:
             correction_mat = inv(new_odom) * pose_mat
             self.lock.release()
             scale, shear, angles, trans, persp = decompose_matrix(correction_mat)
-            self.broadcaster.sendTransform(trans,angles,now, self.odom_frame,self.target_frame)
+            self.broadcaster.sendTransform(trans,
+                    quaternion_from_euler(*angles),now, self.odom_frame,self.target_frame)
+            self.publish(now)
             rate.sleep()
+
+    def publish(self, timestamp):
+        pose = PoseStamped()
+        pose.header.frame_id = self.target_frame
+        pose.header.stamp = timestamp
+        pose.pose.position.x = self.X[0,0]
+        pose.pose.position.y = self.X[1,0]
+        pose.pose.position.z = 0.0
+        Q = quaternion_from_euler(0, 0, self.X[2,0])
+        pose.pose.orientation.x = Q[0]
+        pose.pose.orientation.y = Q[1]
+        pose.pose.orientation.z = Q[2]
+        pose.pose.orientation.w = Q[3]
+        self.pose_pub.publish(pose)
+        ma = MarkerArray()
+        marker = Marker()
+        marker.header = pose.header
+        marker.ns = "kf_uncertainty"
+        marker.id = 5000
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+        marker.pose = pose.pose
+        marker.pose.position.z = -0.1
+        marker.scale.x = 3*sqrt(self.P[0,0])
+        marker.scale.y = 3*sqrt(self.P[1,1]);
+        marker.scale.z = 0.1;
+        marker.color.a = 1.0;
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 1.0;
+        ma.markers.append(marker)
+        for id in self.idx.iterkeys():
+            marker = Marker()
+            marker.header.stamp = timestamp
+            marker.header.frame_id = self.target_frame
+            marker.ns = "landmark_kf"
+            marker.id = id
+            marker.type = Marker.CYLINDER
+            marker.action = Marker.ADD
+            l = self.idx[id]
+            marker.pose.position.x = self.X[l,0]
+            marker.pose.position.y = self.X[l+1,0]
+            marker.pose.position.z = -0.1
+            marker.pose.orientation.x = 0
+            marker.pose.orientation.y = 0
+            marker.pose.orientation.z = 1
+            marker.pose.orientation.w = 0
+            marker.scale.x = 3*sqrt(self.P[l,l])
+            marker.scale.y = 3*sqrt(self.P[l+1,l+1]);
+            marker.scale.z = 0.1;
+            marker.color.a = 1.0;
+            marker.color.r = 1.0;
+            marker.color.g = 1.0;
+            marker.color.b = 0.0;
+            marker.lifetime.secs=3.0;
+            ma.markers.append(marker)
+            marker = Marker()
+            marker.header.stamp = timestamp
+            marker.header.frame_id = self.target_frame
+            marker.ns = "landmark_kf"
+            marker.id = 1000+id
+            marker.type = Marker.TEXT_VIEW_FACING
+            marker.action = Marker.ADD
+            marker.pose.position.x = self.X[l+0,0]
+            marker.pose.position.y = self.X[l+1,0]
+            marker.pose.position.z = 1.0
+            marker.pose.orientation.x = 0
+            marker.pose.orientation.y = 0
+            marker.pose.orientation.z = 1
+            marker.pose.orientation.w = 0
+            marker.text = str(id)
+            marker.scale.x = 1.0
+            marker.scale.y = 1.0
+            marker.scale.z = 0.2
+            marker.color.a = 1.0;
+            marker.color.r = 1.0;
+            marker.color.g = 1.0;
+            marker.color.b = 1.0;
+            marker.lifetime.secs=3.0;
+            ma.markers.append(marker)
+        self.marker_pub.publish(ma)
 
 
 
