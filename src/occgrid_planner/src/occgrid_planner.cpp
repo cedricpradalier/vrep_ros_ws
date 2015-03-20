@@ -256,6 +256,9 @@ class OccupancyGridPlanner {
                 Heap::iterator hit = heap.begin();
                 // the cell it contains is this_cell
                 cv::Point3i this_cell = hit->second;
+                if (this_cell == target) {
+                    break;
+                }
                 // and its score is this_cost
                 float this_cost = cell_value(this_cell.x,this_cell.y,this_cell.z);
                 // We can remove it from the heap now.
