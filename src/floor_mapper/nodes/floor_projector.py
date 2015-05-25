@@ -78,10 +78,14 @@ class FloorMapper:
             # print numpy.asarray(self.dstpts2d)
             self.H,_ = cv2.findHomography(self.srcpts2d,self.dstpts2d)
             # print "Homography"
-            # print self.H
+            print "H 4pts"
+            print self.H
+            print "-------------------"
             # print numpy.asarray(self.H)
 
-            size = (self.proba.shape[0]-self.horizon_offset,self.proba.shape[1])
+            size = (int(self.proba.shape[0])-self.horizon_offset,self.proba.shape[1])
+            # print self.proba.shape
+            # print self.horizon_offset
             # print size
 
             self.floor_map = cv2.warpPerspective(self.proba[self.horizon_offset:,:],
