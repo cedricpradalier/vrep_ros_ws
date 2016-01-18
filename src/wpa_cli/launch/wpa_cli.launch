@@ -7,5 +7,13 @@
     </node>
 
 
+    <node pkg="wpa_cli" type="wpa_cli_log.py" name="wpa_log" output="screen">
+        <param name="log_directory" value="/tmp"/>
+        <param name="base_link" value="/body"/>
+        <param name="reference_frame" value="/world"/>
+        <remap from="/wpa_log/scan" to="/wpa_cli/scan"/>
+    </node>
+
+
 </launch>
 

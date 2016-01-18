@@ -7,7 +7,7 @@ import re
 from wpa_cli.msg import Scan,Network
 
 rospy.init_node('wpa_cli')
-pub = rospy.Publisher('~scan',Scan,latch=True)
+pub = rospy.Publisher('~scan',Scan,latch=True,queue_size=1)
 scan_period = rospy.get_param("~scan_period",10.0)
 update_period = rospy.get_param("~update_period",5.0)
 ignore = rospy.get_param("~ignore_ssid","")

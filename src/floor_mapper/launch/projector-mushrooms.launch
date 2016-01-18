@@ -1,0 +1,15 @@
+<launch>
+
+
+  <node pkg="floor_mapper" type="floor_projector_gen.py" name="floor_projector_gen" output="screen">
+      <param name="floor_size_pix" value="400"/>
+      <param name="floor_size_meter" value="4.0"/>
+      <param name="floor_origin_x_pix" value="0"/>
+      <param name="floor_origin_y_pix" value="200"/>
+      <param name="target_frame" value="/HuskyGround"/>
+      <param name="display_map" value="True"/>
+      <remap from="/floor_projector_gen/image" to="/vrep/visionSensor"/>
+      <remap from="/floor_projector_gen/info" to="/vrep/visionSensorInfo"/>
+  </node>
+
+</launch>
