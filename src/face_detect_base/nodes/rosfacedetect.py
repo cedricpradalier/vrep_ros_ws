@@ -7,7 +7,7 @@ Original C implementation by:  ?
 Python implementation by: Roman Stanchak, James Bowman
 """
 import roslib
-roslib.load_manifest('face_detect')
+roslib.load_manifest('face_detect_base')
 
 import sys
 import os
@@ -17,7 +17,6 @@ import sensor_msgs.msg
 from cv_bridge import CvBridge
 import cv2
 from sensor_msgs.msg import *
-from face_detect.msg import *
 
 
 min_size = (10, 10)
@@ -41,34 +40,22 @@ if __name__ == '__main__':
     br = CvBridge()
     rospy.init_node('facedetect')
     display = rospy.get_param("~display",True)
-    detect_eyes = rospy.get_param("~eyes",True)
-    pub = rospy.Publisher("~rois",ROIArray,queue_size=1)
 
     def detect_and_draw(imgmsg):
-        roilist = ROIArray()
-        roilist.header = imgmsg.header
         img = br.imgmsg_to_cv2(imgmsg, "bgr8")
         # allocate temporary images
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 3)
         for (x,y,w,h) in faces:
-            if display:
-                cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
-            roi = RegionOfInterest(x,y,w,h,False)
-            roilist.rois.append(roi)
+            cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = img[y:y+h, x:x+w]
-            if detect_eyes:
-                eyes = eye_cascade.detectMultiScale(roi_gray)
-                if display:
-                    for (ex,ey,ew,eh) in eyes:
-                        cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-
-        pub.publish(roilist)
+            eyes = eye_cascade.detectMultiScale(roi_gray)
+            for (ex,ey,ew,eh) in eyes:
+                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
         
-        if display:
-            cv2.imshow('img',img)
-            cv2.waitKey(10)
+        cv2.imshow('img',img)
+        cv2.waitKey(10)
 
     rospy.Subscriber("~image", sensor_msgs.msg.Image, detect_and_draw)
     rospy.spin()
