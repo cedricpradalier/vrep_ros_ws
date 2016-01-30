@@ -40,6 +40,8 @@ generate_dynamic_reconfigure_options(
   cfg/TaskSetHeading.cfg
   cfg/TaskSetManual.cfg
   cfg/TaskWaitForAuto.cfg
+  cfg/TaskWaitForROI.cfg
+  cfg/TaskWander.cfg
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -114,6 +116,14 @@ add_dependencies(TaskWaitForAuto ${${PROJECT_NAME}_EXPORTED_TARGETS})
 ADD_LIBRARY( TaskSetManual SHARED tasks/TaskSetManual.cpp)
 TARGET_LINK_LIBRARIES(TaskSetManual ${catkin_LIBRARIES} dl)
 add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+ADD_LIBRARY( TaskWaitForROI SHARED tasks/TaskWaitForROI.cpp)
+TARGET_LINK_LIBRARIES(TaskWaitForROI ${catkin_LIBRARIES} dl)
+add_dependencies(TaskWaitForROI ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+ADD_LIBRARY( TaskWander SHARED tasks/TaskWander.cpp)
+TARGET_LINK_LIBRARIES(TaskWander ${catkin_LIBRARIES} dl)
+add_dependencies(TaskWander ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 
 #############

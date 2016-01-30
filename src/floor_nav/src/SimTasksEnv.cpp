@@ -17,6 +17,8 @@ SimTasksEnv::SimTasksEnv(ros::NodeHandle & n) : task_manager_lib::TaskEnvironmen
 
     muxSub = nh.subscribe("/mux/selected",1,&SimTasksEnv::muxCallback,this);
     pointCloudSub = nh.subscribe("/vrep/depthSensor",1,&SimTasksEnv::pointCloudCallback,this);
+    pointCloud2DSub = nh.subscribe("/vrep/hokuyoSensor",1,&SimTasksEnv::pointCloud2DCallback,this);
+    laserscanSub = nh.subscribe("/scan",1,&SimTasksEnv::laserScanCallback,this);
     velPub = nh.advertise<geometry_msgs::Twist>(auto_topic,1);
 }
 
@@ -110,5 +112,17 @@ void SimTasksEnv::muxCallback(const std_msgs::String::ConstPtr& msg) {
 
 void SimTasksEnv::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr msg) {
     pcl::fromROSMsg(*msg, pointCloud);
+}
+
+void SimTasksEnv::pointCloud2DCallback(const sensor_msgs::PointCloud2ConstPtr msg) {
+    pcl::fromROSMsg(*msg, pointCloud2D);
+}
+
+void SimTasksEnv::laserScanCallback(const sensor_msgs::LaserScanConstPtr msg) {
+    pointCloud2D.resize(msg->ranges.size());
+    for (size_t i=0;i<msg->ranges.size();i++) {
+        pointCloud2D[i].x = msg->ranges[i]*cos(msg->angle_min + i*msg->angle_increment);
+        pointCloud2D[i].y = msg->ranges[i]*sin(msg->angle_min + i*msg->angle_increment);
+    }
 }
 

@@ -8,6 +8,7 @@
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "sensor_msgs/LaserScan.h"
 #include "pcl_ros/point_cloud.h"
 #include "pcl/point_types.h"
 #include <tf/transform_listener.h>
@@ -21,6 +22,8 @@ namespace floor_nav {
             bool paused;
             ros::Subscriber muxSub;
             ros::Subscriber pointCloudSub;
+            ros::Subscriber pointCloud2DSub;
+            ros::Subscriber laserscanSub;
             ros::Publisher velPub;
             ros::ServiceClient muxClient;
             tf::TransformListener listener;
@@ -28,6 +31,8 @@ namespace floor_nav {
             void muxCallback(const std_msgs::String::ConstPtr& msg) ;
 
             void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr msg) ;
+            void pointCloud2DCallback(const sensor_msgs::PointCloud2ConstPtr msg) ;
+            void laserScanCallback(const sensor_msgs::LaserScanConstPtr msg) ;
 
             bool manualControl;
             std::string joystick_topic;
@@ -35,9 +40,7 @@ namespace floor_nav {
             std::string base_frame;
             std::string reference_frame;
             pcl::PointCloud<pcl::PointXYZ> pointCloud;
-            
-            // Specific variable for lake circumnavigation
-            geometry_msgs::Pose2D finishLine2D;
+            pcl::PointCloud<pcl::PointXYZ> pointCloud2D;
 
         public:
             SimTasksEnv(ros::NodeHandle & nh);
@@ -51,7 +54,8 @@ namespace floor_nav {
 
             geometry_msgs::PoseStamped getPoseStamped() const  ;
 
-            pcl::PointCloud<pcl::PointXYZ> getPointCloud() const {return pointCloud;}
+            const pcl::PointCloud<pcl::PointXYZ>& getPointCloud() const {return pointCloud;}
+            const pcl::PointCloud<pcl::PointXYZ>& getPointCloud2D() const {return pointCloud2D;}
 
             void publishVelocity(double linear, double angular) ;
 
@@ -59,9 +63,6 @@ namespace floor_nav {
             void setComputerControl();
             bool getManualControl() const {return manualControl;}
 
-            // Specific variable for lake circumnavigation
-            void setFinishLine2D(geometry_msgs::Pose2D pose) {finishLine2D = pose;}
-            geometry_msgs::Pose2D getFinishLine2D() const {return finishLine2D;}
         public: // To make point cloud work on 32bit system
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     };

@@ -14,7 +14,7 @@ namespace floor_nav {
             TaskGoTo(TaskDefinitionPtr def, TaskEnvironmentPtr env) : Parent(def,env) {}
             virtual ~TaskGoTo() {};
 
-            virtual TaskIndicator initialise(const TaskParameters & parameters) ;
+            virtual TaskIndicator initialise() ;
 
             virtual TaskIndicator iterate();
 

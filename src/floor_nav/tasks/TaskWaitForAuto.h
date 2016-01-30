@@ -14,7 +14,7 @@ namespace floor_nav {
             TaskWaitForAuto(TaskDefinitionPtr def, TaskEnvironmentPtr env) : Parent(def,env) {}
             virtual ~TaskWaitForAuto() {};
 
-            virtual TaskIndicator initialise(const TaskParameters & parameters) ;
+            virtual TaskIndicator initialise() ;
 
             virtual TaskIndicator iterate();
 

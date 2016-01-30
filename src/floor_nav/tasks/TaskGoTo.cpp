@@ -11,7 +11,7 @@ using namespace floor_nav;
 #endif
 
 
-TaskIndicator TaskGoTo::initialise(const TaskParameters & parameters) 
+TaskIndicator TaskGoTo::initialise() 
 {
     ROS_INFO("Going to %.2f %.2f",cfg.goal_x,cfg.goal_y);
     return TaskStatus::TASK_INITIALISED;

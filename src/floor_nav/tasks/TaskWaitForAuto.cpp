@@ -6,7 +6,7 @@ using namespace task_manager_lib;
 using namespace floor_nav;
 
 
-TaskIndicator TaskWaitForAuto::initialise(const TaskParameters & parameters) 
+TaskIndicator TaskWaitForAuto::initialise() 
 {
     ROS_INFO("Waiting for automatic control. Press the red button.");
     return TaskStatus::TASK_INITIALISED;
