@@ -45,7 +45,7 @@ geometry_msgs::Pose2D SimTasksEnv::getPose2D() const {
     geometry_msgs::Pose2D pose;
     tf::StampedTransform transform;
     try{
-        listener.lookupTransform("/world",base_frame, 
+        listener.lookupTransform(reference_frame,base_frame, 
                 ros::Time(0), transform);
     }
     catch (tf::TransformException ex){

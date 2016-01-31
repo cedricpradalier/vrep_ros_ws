@@ -7,11 +7,13 @@
         <!-- <param name="lib_path" value="$(find floor_nav)/tasks"/> -->
         <!-- While developing -->
         <param name="lib_path" value="$(find floor_nav)/../../devel/share/floor_nav/tasks"/>
-        <param name="base_frame" value="/bubbleRob"/>
-        <param name="reference_frame" value="/bubbleRob"/>
+        <param name="base_frame" value="rosControlledBubbleRob"/>
+        <param name="reference_frame" value="world"/>
     </node>
+    <!-- For the rosControlKinect scene
     <node name="viz_graph" pkg="floor_graph" type="viz_graph.py" output="screen">
     </node>
+    -->
 
 
 

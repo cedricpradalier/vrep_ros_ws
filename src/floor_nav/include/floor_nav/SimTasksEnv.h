@@ -18,7 +18,6 @@ namespace floor_nav {
     class SimTasksEnv: public task_manager_lib::TaskEnvironment
     {
         protected:
-            ros::NodeHandle nh;
             bool paused;
             ros::Subscriber muxSub;
             ros::Subscriber pointCloudSub;
