@@ -13,9 +13,7 @@
     <node name="viz_graph" pkg="floor_graph" type="viz_graph.py" output="screen">
     </node>
 
-    <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="depthimage_to_laserscan" >
-      <param name="range_min" value="0.45"/>
 
-      <remap from="depthimage_to_laserscan/cloud_in" to="/vrep/depthSensor"/>
-    </node>
+
 </launch>
+
