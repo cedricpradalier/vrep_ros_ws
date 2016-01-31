@@ -9,7 +9,7 @@ from roslib.packages import get_pkg_dir
 
 rospy.init_node('build_graph')
 listener = tf.TransformListener()
-mpub = rospy.Publisher("/graph/viz",MarkerArray,latch=True)
+mpub = rospy.Publisher("/graph/viz",MarkerArray,latch=True, queue_size=1)
 rospy.sleep(1.0);
 
 ma = MarkerArray()
