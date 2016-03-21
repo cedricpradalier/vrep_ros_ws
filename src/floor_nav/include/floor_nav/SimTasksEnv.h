@@ -62,6 +62,8 @@ namespace floor_nav {
             void setComputerControl();
             bool getManualControl() const {return manualControl;}
 
+            const std::string & getReferenceFrame() const {return reference_frame;}
+            const std::string & getBaseFrame() const {return base_frame;}
         public: // To make point cloud work on 32bit system
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     };
