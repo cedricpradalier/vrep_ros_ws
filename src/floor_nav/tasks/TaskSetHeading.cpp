@@ -10,13 +10,19 @@ using namespace floor_nav;
 TaskIndicator TaskSetHeading::initialise() 
 {
     ROS_INFO("Setting heading to %.2f deg", cfg.target*180./M_PI);
+    if (cfg.relative) {
+        const geometry_msgs::Pose2D & tpose = env->getPose2D();
+        initial_heading = tpose.theta;
+    } else {
+        initial_heading = 0.0;
+    }
     return TaskStatus::TASK_INITIALISED;
 }
 
 TaskIndicator TaskSetHeading::iterate()
 {
     const geometry_msgs::Pose2D & tpose = env->getPose2D();
-    double alpha = remainder(cfg.target-tpose.theta,2*M_PI);
+    double alpha = remainder(initial_heading+cfg.target-tpose.theta,2*M_PI);
     if (fabs(alpha) < cfg.angle_threshold) {
 		return TaskStatus::TASK_COMPLETED;
     }

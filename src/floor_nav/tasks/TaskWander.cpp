@@ -58,7 +58,23 @@ TaskIndicator TaskWander::iterate()
     try {
         // Use the value stored in sensor_map to implement the desired
         // behaviors
-        env->publishVelocity(0.0, 0.0);
+        double min_forward = std::min(sensor_map[0],sensor_map[1]);
+        double linear = std::min(1.0, std::max((min_forward-cfg.safety_range) 
+                    / (cfg.dont_care_range-cfg.safety_range),0.0))*cfg.max_linear_speed;
+        double angular = cfg.max_angular_speed*(std::min(sensor_map[1],
+                    cfg.dont_care_range)-std::min(sensor_map[0],cfg.dont_care_range))
+            / cfg.dont_care_range;
+        if (angular < -cfg.max_angular_speed) {
+            angular = -cfg.max_angular_speed;
+        } 
+        if (angular > cfg.max_angular_speed) {
+            angular = cfg.max_angular_speed;
+        } 
+        // safety to make sure we're not stuck
+        if ((fabs(linear)<5e-2)) {
+            angular = cfg.max_angular_speed;
+        }
+        env->publishVelocity(linear, angular);
     } catch (std::exception & e) {
         ROS_ERROR("Exception in speed computation: %s",e.what());
         env->publishVelocity(0.0, 0.0);
