@@ -1,16 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(floor_nav)
+project(collision_avoidance_base)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs tf dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
+  pcl_ros
+  roscpp
+  sensor_msgs
+  std_msgs
+)
 
 ## System dependencies are found with CMake's conventions
-find_package(task_manager_msgs REQUIRED)
-find_package(task_manager_lib REQUIRED)
-# find_package(task_manager_msgs REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
+# find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -18,9 +21,29 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
-#######################################
-## Declare ROS messages and services ##
-#######################################
+################################################
+## Declare ROS messages, services and actions ##
+################################################
+
+## To declare and build messages, services or actions from within this
+## package, follow these steps:
+## * Let MSG_DEP_SET be the set of packages whose message types you use in
+##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+## * In the file package.xml:
+##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
+##   * If MSG_DEP_SET isn't empty the following dependencies might have been
+##     pulled in transitively but can be declared for certainty nonetheless:
+##     * add a build_depend tag for "message_generation"
+##     * add a run_depend tag for "message_runtime"
+## * In this file (CMakeLists.txt):
+##   * add "message_generation" and every package in MSG_DEP_SET to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add "message_runtime" and every package in MSG_DEP_SET to
+##     catkin_package(CATKIN_DEPENDS ...)
+##   * uncomment the add_*_files sections below as needed
+##     and list every .msg/.srv/.action file to be processed
+##   * uncomment the generate_messages entry below
+##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
@@ -35,20 +58,18 @@ find_package(Boost REQUIRED COMPONENTS system)
 #   Service1.srv
 #   Service2.srv
 # )
-generate_dynamic_reconfigure_options(
-  cfg/TaskGoTo.cfg
-  cfg/TaskPlanTo.cfg
-  cfg/TaskSetHeading.cfg
-  cfg/TaskSetManual.cfg
-  cfg/TaskWaitForAuto.cfg
-  cfg/TaskWaitForROI.cfg
-  cfg/TaskWander.cfg
-)
+
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs   sensor_msgs   std_msgs   task_manager_msgs
+#   geometry_msgs#   sensor_msgs#   std_msgs
 # )
 
 ###################################
@@ -62,8 +83,8 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES floor_nav
-  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs task_manager_lib task_manager_msgs tf
+#  LIBRARIES collision_avoidance
+#  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -75,61 +96,25 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-    include ${task_manager_msgs_INCLUDE_DIRS} ${task_manager_lib_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
-# add_library(floor_nav
-#   src/${PROJECT_NAME}/floor_nav.cpp
+# add_library(collision_avoidance
+#   src/${PROJECT_NAME}/collision_avoidance.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(floor_nav_node src/floor_nav_node.cpp)
+add_executable(collision_avoidance_base src/collision_avoidance.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(floor_nav_node floor_nav_generate_messages_cpp)
+# add_dependencies(collision_avoidance_node collision_avoidance_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(floor_nav_node
-#   ${catkin_LIBRARIES}
-# )
-
-ADD_EXECUTABLE( task_server src/task_server.cpp src/SimTasksEnv.cpp) 
-TARGET_LINK_LIBRARIES(task_server ${task_manager_lib_LIBRARIES} ${catkin_LIBRARIES} dl boost_system)
-add_dependencies(task_server ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/tasks)
-# Now compile the tasks independently
-
-ADD_LIBRARY( TaskSetHeading SHARED tasks/TaskSetHeading.cpp)
-TARGET_LINK_LIBRARIES(TaskSetHeading ${catkin_LIBRARIES} dl)
-add_dependencies(TaskSetHeading ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskGoTo SHARED tasks/TaskGoTo.cpp)
-TARGET_LINK_LIBRARIES(TaskGoTo ${catkin_LIBRARIES} dl)
-add_dependencies(TaskGoTo ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskPlanTo SHARED tasks/TaskPlanTo.cpp)
-TARGET_LINK_LIBRARIES(TaskPlanTo ${catkin_LIBRARIES} dl)
-add_dependencies(TaskPlanTo ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskWaitForAuto SHARED tasks/TaskWaitForAuto.cpp)
-TARGET_LINK_LIBRARIES(TaskWaitForAuto ${catkin_LIBRARIES} dl)
-add_dependencies(TaskWaitForAuto ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskSetManual SHARED tasks/TaskSetManual.cpp)
-TARGET_LINK_LIBRARIES(TaskSetManual ${catkin_LIBRARIES} dl)
-add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskWaitForROI SHARED tasks/TaskWaitForROI.cpp)
-TARGET_LINK_LIBRARIES(TaskWaitForROI ${catkin_LIBRARIES} dl)
-add_dependencies(TaskWaitForROI ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskWander SHARED tasks/TaskWander.cpp)
-TARGET_LINK_LIBRARIES(TaskWander ${catkin_LIBRARIES} dl)
-add_dependencies(TaskWander ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
+target_link_libraries(collision_avoidance_base
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -146,7 +131,7 @@ add_dependencies(TaskWander ${${PROJECT_NAME}_EXPORTED_TARGETS})
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS floor_nav floor_nav_node
+# install(TARGETS collision_avoidance collision_avoidance_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -171,7 +156,7 @@ add_dependencies(TaskWander ${${PROJECT_NAME}_EXPORTED_TARGETS})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_floor_nav.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_collision_avoidance.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
