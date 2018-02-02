@@ -55,10 +55,10 @@ namespace robot_control
     class ParamDescription : public AbstractParamDescription
     {
     public:
-      ParamDescription(std::string name, std::string type, uint32_t level, 
-          std::string description, std::string edit_method, T GotoXYConfig::* f) :
-        AbstractParamDescription(name, type, level, description, edit_method),
-        field(f)
+      ParamDescription(std::string a_name, std::string a_type, uint32_t a_level, 
+          std::string a_description, std::string a_edit_method, T GotoXYConfig::* a_f) :
+        AbstractParamDescription(a_name, a_type, a_level, a_description, a_edit_method),
+        field(a_f)
       {}
 
       T (GotoXYConfig::* field);
@@ -141,7 +141,7 @@ namespace robot_control
     class GroupDescription : public AbstractGroupDescription
     {
     public:
-      GroupDescription(std::string name, std::string type, int parent, int id, bool s, T PT::* f) : AbstractGroupDescription(name, type, parent, id, s), field(f)
+      GroupDescription(std::string a_name, std::string a_type, int a_parent, int a_id, bool a_s, T PT::* a_f) : AbstractGroupDescription(a_name, a_type, a_parent, a_id, a_s), field(a_f)
       {
       }
 
@@ -248,15 +248,15 @@ double dist_threshold;
 
 
 
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       double k_v;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       double k_alpha;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       double max_velocity;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       double max_rotational_velocity;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       double dist_threshold;
 //#line 218 "/opt/ros/kinetic/share/dynamic_reconfigure/templates/ConfigType.h.template"
 
@@ -383,6 +383,9 @@ double dist_threshold;
   template <> // Max and min are ignored for strings.
   inline void GotoXYConfig::ParamDescription<std::string>::clamp(GotoXYConfig &config, const GotoXYConfig &max, const GotoXYConfig &min) const
   {
+    (void) config;
+    (void) min;
+    (void) max;
     return;
   }
 
@@ -393,61 +396,61 @@ double dist_threshold;
     GotoXYConfigStatics()
     {
 GotoXYConfig::GroupDescription<GotoXYConfig::DEFAULT, GotoXYConfig> Default("Default", "", 0, 0, true, &GotoXYConfig::groups);
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __min__.k_v = 0.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __max__.k_v = 10.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __default__.k_v = 1.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.abstract_parameters.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("k_v", "double", 0, "Gain for velocity control", "", &GotoXYConfig::k_v)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("k_v", "double", 0, "Gain for velocity control", "", &GotoXYConfig::k_v)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __min__.k_alpha = 0.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __max__.k_alpha = 10.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __default__.k_alpha = 0.1;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.abstract_parameters.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("k_alpha", "double", 0, "Gain for angular control", "", &GotoXYConfig::k_alpha)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("k_alpha", "double", 0, "Gain for angular control", "", &GotoXYConfig::k_alpha)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __min__.max_velocity = 0.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __max__.max_velocity = 5.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __default__.max_velocity = 0.5;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.abstract_parameters.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("max_velocity", "double", 0, "Max allowed velocity", "", &GotoXYConfig::max_velocity)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("max_velocity", "double", 0, "Max allowed velocity", "", &GotoXYConfig::max_velocity)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __min__.max_rotational_velocity = 0.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __max__.max_rotational_velocity = 6.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __default__.max_rotational_velocity = 0.5;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.abstract_parameters.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("max_rotational_velocity", "double", 0, "Max allowed rotational velocity", "", &GotoXYConfig::max_rotational_velocity)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("max_rotational_velocity", "double", 0, "Max allowed rotational velocity", "", &GotoXYConfig::max_rotational_velocity)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __min__.dist_threshold = 0.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __max__.dist_threshold = 10.0;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __default__.dist_threshold = 0.1;
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.abstract_parameters.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("dist_threshold", "double", 0, "Distance at which a the target is considered reached", "", &GotoXYConfig::dist_threshold)));
-//#line 259 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 273 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __param_descriptions__.push_back(GotoXYConfig::AbstractParamDescriptionConstPtr(new GotoXYConfig::ParamDescription<double>("dist_threshold", "double", 0, "Distance at which a the target is considered reached", "", &GotoXYConfig::dist_threshold)));
-//#line 233 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 245 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       Default.convertParams();
-//#line 233 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
+//#line 245 "/opt/ros/kinetic/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator.py"
       __group_descriptions__.push_back(GotoXYConfig::AbstractGroupDescriptionConstPtr(new GotoXYConfig::GroupDescription<GotoXYConfig::DEFAULT, GotoXYConfig>(Default)));
-//#line 353 "/opt/ros/kinetic/share/dynamic_reconfigure/templates/ConfigType.h.template"
+//#line 356 "/opt/ros/kinetic/share/dynamic_reconfigure/templates/ConfigType.h.template"
 
       for (std::vector<GotoXYConfig::AbstractGroupDescriptionConstPtr>::const_iterator i = __group_descriptions__.begin(); i != __group_descriptions__.end(); ++i)
       {

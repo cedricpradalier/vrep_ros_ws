@@ -84,6 +84,7 @@ geometry_msgs::PoseStamped SimTasksEnv::getPoseStamped() const {
     }
     tf::quaternionTFToMsg(transform.getRotation(),pose.pose.orientation);
     tf::pointTFToMsg(transform.getOrigin(),pose.pose.position);
+    pose.header.frame_id = getReferenceFrame();
     pose.header.stamp = transform.stamp_;
     return pose;
 }

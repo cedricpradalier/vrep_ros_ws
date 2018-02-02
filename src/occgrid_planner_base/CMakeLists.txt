@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+find_package(OpenCV REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -113,7 +115,8 @@ add_executable(occgrid_planner_b src/occgrid_planner.cpp)
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(occgrid_planner_b occgrid_planner_base_generate_messages_cpp)
 ## Specify libraries to link a library or executable target against
-target_link_libraries(occgrid_planner_b ${catkin_LIBRARIES})
+target_link_libraries(occgrid_planner_b ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(path_follower_b src/path_follower.cpp)

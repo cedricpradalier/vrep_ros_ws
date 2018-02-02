@@ -56,9 +56,9 @@ static std::string objNameToFrameId(const std::string & name)
 {
 	std::string slash("/"), out;
 	if (name[0] == '/') {
-		out = name;
+		out = name.substr(1);
     } else {
-		out = slash + name;
+		out = name;
     }
     for (size_t i=0;i<out.size();i++) {
         if (out[i]=='#') {
