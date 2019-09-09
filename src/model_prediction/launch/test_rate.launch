@@ -1,0 +1,18 @@
+<launch>
+    <node pkg="model_prediction" type="generator.py" name="generator" output="screen" />
+
+    <node pkg="model_prediction" type="model_prediction_rate.py" name="predictor" output="screen" >
+        <param name="rate" value="5"/>
+        <param name="command_type" value="std_msgs/Float64"/>
+        <param name="command_field" value="data"/>
+        <param name="command_coef_csv" value=""/>
+        <param name="state_type" value="std_msgs/Float64"/>
+        <param name="state_field" value="data"/>
+        <param name="state_coef_csv" value="0.2,0.2,0.2,0.2,0.2"/>
+
+        <remap from="/predictor/command" to="/command"/>
+        <remap from="/predictor/state" to="/state"/>
+    </node>
+
+</launch>
+

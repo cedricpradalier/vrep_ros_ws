@@ -212,7 +212,7 @@ class OccupancyGridPlanner {
                 // the cell it contains is this_cell
                 cv::Point this_cell = hit->second;
                 // and its score is this_cost
-                float this_cost = hit->first;
+                float this_cost = cell_value(this_cell);
                 // We can remove it from the heap now.
                 heap.erase(hit);
                 // Now see where we can go from this_cell
