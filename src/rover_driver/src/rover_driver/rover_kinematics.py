@@ -32,7 +32,44 @@ class RoverKinematics:
     def __init__(self):
         self.X = numpy.asmatrix(numpy.zeros((3,1)))
         self.motor_state = RoverMotors()
+        self.ICR = (pi/2,pi/2)
         self.first_run = True
+
+    def ICR_cart_to_polar(x,y):
+        return (atan2(y,x), atan(hypot(y,x)))
+
+    def ICR_polar_to_cart(theta,phi):
+        r = tan(phi)
+        return (r*cos(theta),r*sin(theta))
+
+    def ICR_from_twist(vx,vy,wz):
+        theta=atan2(vy,vx)+pi/2
+        phi=atan2(hypot(vx,vy),wz)
+        return (theta,phi)
+
+    def ICR_to_twist(theta,phi,v):
+        r = tan(phi)
+        T = Twist()
+        T.angular.z = v / r
+        T.linear.x = v * cos(theta-pi/2)
+        T.linear.y = v * sin(theta-pi/2)
+        return T
+
+    def filter_twist(self, twist_in, drive_cfg):
+        twist_out = Twist()
+        vx = twist_in.linear.x; vy = twist_in.linear.y; wz = twist_in.angular.z
+        v = hypot(vx,vy)
+        if abs(v)<1e-2:
+            # not moving while not changing the current ICR
+            theta,phi = self.ICR
+            return ICR_to_twist(theta,phi,1e-3)
+        elif abs(wz)<1e-2:
+            pass
+        else:
+            pass
+
+
+        return twist_out
 
     def twist_to_motors(self, twist, drive_cfg, skidsteer=False):
         motors = RoverMotors()
@@ -83,6 +120,8 @@ class RoverKinematics:
             ds = (motor_state_t2.drive[k] - motor_state_t1.drive[k]) % (2*pi)
             if ds>pi:
                 ds -= 2*pi
+            if ds<-pi:
+                ds += 2*pi
             ds *= drive_cfg[k].radius
             S[2*i+0,0] = ds*cos(beta)
             S[2*i+1,0] = ds*sin(beta)

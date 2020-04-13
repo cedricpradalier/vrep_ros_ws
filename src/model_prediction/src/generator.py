@@ -5,8 +5,8 @@ from math import sin,cos
 from std_msgs.msg import Float64
 
 rospy.init_node('generator')
-spub = rospy.Publisher("/state",Float64)
-cpub = rospy.Publisher("/command",Float64)
+spub = rospy.Publisher("/state",Float64, queue_size=1)
+cpub = rospy.Publisher("/command",Float64, queue_size=1)
 
 rate = rospy.Rate(10)
 while not rospy.is_shutdown():
