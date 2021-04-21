@@ -61,7 +61,14 @@ int main(int argc, char * argv[])
     CollisionAvoidance ca;
 
     ros::spin();
+    ros::Rate rate(10);
     // TODO: implement a security layer
+    // while (!ros::is_shutdown) {
+    //     // check time from last scan
+    //     // 
+    //     ros::spinOnce();
+    //     rate.sleep();
+    // }
 }
 
 

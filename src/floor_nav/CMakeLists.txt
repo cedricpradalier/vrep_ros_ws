@@ -40,6 +40,7 @@ generate_dynamic_reconfigure_options(
   cfg/TaskPlanTo.cfg
   cfg/TaskSetHeading.cfg
   cfg/TaskSetManual.cfg
+  cfg/TaskTrigger.cfg
   cfg/TaskWaitForAuto.cfg
   cfg/TaskWaitForROI.cfg
   cfg/TaskWander.cfg
@@ -121,6 +122,10 @@ add_dependencies(TaskWaitForAuto ${${PROJECT_NAME}_EXPORTED_TARGETS})
 ADD_LIBRARY( TaskSetManual SHARED tasks/TaskSetManual.cpp)
 TARGET_LINK_LIBRARIES(TaskSetManual ${catkin_LIBRARIES} dl)
 add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+ADD_LIBRARY( TaskTrigger SHARED tasks/TaskTrigger.cpp)
+TARGET_LINK_LIBRARIES(TaskTrigger ${catkin_LIBRARIES} dl)
+add_dependencies(TaskTrigger ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskWaitForROI SHARED tasks/TaskWaitForROI.cpp)
 TARGET_LINK_LIBRARIES(TaskWaitForROI ${catkin_LIBRARIES} dl)
