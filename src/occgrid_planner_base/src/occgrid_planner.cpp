@@ -268,6 +268,10 @@ class OccupancyGridPlanner {
                 cv::Point P = *it - og_center_;
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
+                path.poses[ipose].pose.orientation.x = 0;
+                path.poses[ipose].pose.orientation.y = 0;
+                path.poses[ipose].pose.orientation.z = 0;
+                path.poses[ipose].pose.orientation.w = 1;
                 ipose++;
                 it ++;
             }

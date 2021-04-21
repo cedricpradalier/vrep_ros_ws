@@ -2,13 +2,14 @@
 
     <!-- Instantiate your teleoperation node here -->
 
-  <node pkg="collision_avoidance_base" type="collision_avoidance_base" name="coll_avoid" output="screen">
+  <node pkg="collision_avoidance" type="collision_avoidance" name="coll_avoid" output="screen">
       launch-prefix="xterm -e gdb --args"
-      <param name="radius" value="1.0" />
+      <param name="safety_diameter" value="1.0" />
+      <param name="base_frame" value="bubbleRob" />
 
-      <remap from="~scans" to="/vrep/hokuyoSensor"/>
-      <remap from="~cmd_vel" to="/teleop/cmd_vel"/>
-      <remap from="~output_vel" to="/vrep/twistCommand"/> -->
+      <remap from="~scan" to="/vrep/hokuyo"/>
+      <remap from="~vel_input" to="/teleop/cmd_vel"/>
+      <remap from="~vel_output" to="/vrep/twistCommand"/> -->
   </node>
 
 </launch>

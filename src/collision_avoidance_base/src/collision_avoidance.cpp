@@ -2,20 +2,25 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/LaserScan.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <pcl_ros/transforms.h>
 
 
 class CollisionAvoidance {
     protected:
         ros::Subscriber scanSub;
+        ros::Subscriber cloudSub;
         ros::Subscriber velSub;
         ros::Publisher velPub;
 
         ros::NodeHandle nh;
-
-        // This might be useful
-        double radius;
+        std::string base_frame;
+        double safety_diameter;
+        tf::TransformListener listener;
 
         pcl::PointCloud<pcl::PointXYZ> lastpc;
 
@@ -24,8 +29,34 @@ class CollisionAvoidance {
             velPub.publish(filtered);
         }
 
+        void scan_callback(const sensor_msgs::LaserScanConstPtr msg) {
+            lastpc.clear();
+            for (size_t i=0;i<msg->ranges.size();i++) {
+                double alpha = msg->angle_min + i*msg->angle_increment;
+                pcl::PointXYZ P;
+                P.x = msg->ranges[i] * cos(alpha);
+                P.y = msg->ranges[i] * sin(alpha);
+                P.z = 0;
+                lastpc.push_back(P);
+            }
+
+            // unsigned int n = lastpc.size();
+            // ROS_INFO("New point cloud: %d points",n);
+            // for (unsigned int i=0;i<n;i++) {
+            //     float x = lastpc[i].x;
+            //     float y = lastpc[i].y;
+            //     float z = lastpc[i].z;
+            //     ROS_INFO("%d %.3f %.3f %.3f",i,x,y,z);
+            // }
+            // printf("\n\n\n");
+        }
+
         void pc_callback(const sensor_msgs::PointCloud2ConstPtr msg) {
-            pcl::fromROSMsg(*msg, lastpc);
+            pcl::PointCloud<pcl::PointXYZ> temp;
+            pcl::fromROSMsg(*msg, temp);
+            // Make sure the point cloud is in the base-frame
+            listener.waitForTransform(base_frame,msg->header.frame_id,msg->header.stamp,ros::Duration(1.0));
+            pcl_ros::transformPointCloud(base_frame,msg->header.stamp, temp, msg->header.frame_id, lastpc, listener);
             // unsigned int n = lastpc.size();
             // ROS_INFO("New point cloud: %d points",n);
             // for (unsigned int i=0;i<n;i++) {
@@ -39,17 +70,37 @@ class CollisionAvoidance {
 
         geometry_msgs::Twist findClosestAcceptableVelocity(const geometry_msgs::Twist & desired) {
             geometry_msgs::Twist res = desired;
-            // TODO: modify desired using the laser point cloud
+            unsigned int n = lastpc.size();
+            double multiplier = 1;
+            for (unsigned int i=0;i<n;i++) {
+                float x = lastpc[i].x;
+                float y = lastpc[i].y;
+                float z = lastpc[i].z;
+
+                // float z = *(float*)(&lastpc.data[lastpc.point_step*i + lastpc.fields[2].offset]);
+                if (hypot(x,y) < 1e-2) {
+                    // bogus point, the laser did not return
+                    continue;
+                }
+
+                // TODO: handle points here
+
+            }
+            ROS_INFO("Speed limiter: desired %.2f controlled %.2f",desired.linear.x,res.linear.x);
 
             return res;
         }
 
     public:
-        CollisionAvoidance() : nh("~"), radius(1.0) {
-            scanSub = nh.subscribe("scans",1,&CollisionAvoidance::pc_callback,this);
-            velSub = nh.subscribe("cmd_vel",1,&CollisionAvoidance::velocity_filter,this);
-            velPub = nh.advertise<geometry_msgs::Twist>("output_vel",1);
-            nh.param("radius",radius,1.0);
+        CollisionAvoidance() : nh("~") {
+            nh.param("base_frame",base_frame,std::string("/body"));
+            nh.param("safety_diameter",safety_diameter,0.2);
+
+            scanSub = nh.subscribe("scan",1,&CollisionAvoidance::scan_callback,this);
+            cloudSub = nh.subscribe("cloud",1,&CollisionAvoidance::pc_callback,this);
+            velSub = nh.subscribe("vel_input",1,&CollisionAvoidance::velocity_filter,this);
+            velPub = nh.advertise<geometry_msgs::Twist>("vel_output",1);
+
         }
 
 };

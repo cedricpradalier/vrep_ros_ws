@@ -7,8 +7,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 import tf
 import threading
 
-import rover_driver
-from rover_driver.rover_kinematics import *
+import rover_driver_base
+from rover_driver_base.rover_kinematics import *
 
 class Landmark:
     def __init__(self, Z, X , R):
