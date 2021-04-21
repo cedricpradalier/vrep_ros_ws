@@ -4,10 +4,11 @@ project(floor_nav)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS geometry_msgs pcl_ros roscpp 
-    rospy sensor_msgs std_msgs tf dynamic_reconfigure
-    kobuki_msgs task_manager_lib task_manager_msgs task_manager_action)
+find_package(catkin REQUIRED COMPONENTS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs tf dynamic_reconfigure)
 
+## System dependencies are found with CMake's conventions
+find_package(task_manager_msgs REQUIRED)
+find_package(task_manager_lib REQUIRED)
 # find_package(task_manager_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
@@ -39,11 +40,10 @@ generate_dynamic_reconfigure_options(
   cfg/TaskPlanTo.cfg
   cfg/TaskSetHeading.cfg
   cfg/TaskSetManual.cfg
+  cfg/TaskTrigger.cfg
   cfg/TaskWaitForAuto.cfg
   cfg/TaskWaitForROI.cfg
   cfg/TaskWander.cfg
-  cfg/TaskConstant.cfg
-  cfg/TaskAutoDock.cfg
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -64,7 +64,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES floor_nav
-  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs task_manager_lib task_manager_msgs task_manager_action kobuki_msgs tf
+  CATKIN_DEPENDS geometry_msgs pcl_ros roscpp rospy sensor_msgs std_msgs task_manager_lib task_manager_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -76,7 +76,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-    include ${catkin_INCLUDE_DIRS}
+    include ${task_manager_msgs_INCLUDE_DIRS} ${task_manager_lib_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -97,7 +97,7 @@ include_directories(
 # )
 
 ADD_EXECUTABLE( task_server src/task_server.cpp src/SimTasksEnv.cpp) 
-TARGET_LINK_LIBRARIES(task_server ${catkin_LIBRARIES} dl boost_system)
+TARGET_LINK_LIBRARIES(task_server ${task_manager_lib_LIBRARIES} ${catkin_LIBRARIES} dl boost_system)
 add_dependencies(task_server ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/tasks)
@@ -123,6 +123,10 @@ ADD_LIBRARY( TaskSetManual SHARED tasks/TaskSetManual.cpp)
 TARGET_LINK_LIBRARIES(TaskSetManual ${catkin_LIBRARIES} dl)
 add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
+ADD_LIBRARY( TaskTrigger SHARED tasks/TaskTrigger.cpp)
+TARGET_LINK_LIBRARIES(TaskTrigger ${catkin_LIBRARIES} dl)
+add_dependencies(TaskTrigger ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
 ADD_LIBRARY( TaskWaitForROI SHARED tasks/TaskWaitForROI.cpp)
 TARGET_LINK_LIBRARIES(TaskWaitForROI ${catkin_LIBRARIES} dl)
 add_dependencies(TaskWaitForROI ${${PROJECT_NAME}_EXPORTED_TARGETS})
@@ -130,14 +134,6 @@ add_dependencies(TaskWaitForROI ${${PROJECT_NAME}_EXPORTED_TARGETS})
 ADD_LIBRARY( TaskWander SHARED tasks/TaskWander.cpp)
 TARGET_LINK_LIBRARIES(TaskWander ${catkin_LIBRARIES} dl)
 add_dependencies(TaskWander ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskConstant SHARED tasks/TaskConstant.cpp)
-TARGET_LINK_LIBRARIES(TaskConstant ${catkin_LIBRARIES} dl)
-add_dependencies(TaskConstant ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
-ADD_LIBRARY( TaskAutoDock SHARED tasks/TaskAutoDock.cpp)
-TARGET_LINK_LIBRARIES(TaskAutoDock ${catkin_LIBRARIES} dl)
-add_dependencies(TaskAutoDock ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 
 #############

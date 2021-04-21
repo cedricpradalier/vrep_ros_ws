@@ -17,7 +17,7 @@ SimTasksEnv::SimTasksEnv(ros::NodeHandle & n) : task_manager_lib::TaskEnvironmen
 
     muxSub = nh.subscribe("/mux/selected",1,&SimTasksEnv::muxCallback,this);
     pointCloudSub = nh.subscribe("/vrep/depthSensor",1,&SimTasksEnv::pointCloudCallback,this);
-    pointCloud2DSub = nh.subscribe("/vrep/hokuyoSensor",1,&SimTasksEnv::pointCloud2DCallback,this);
+    pointCloud2DSub = nh.subscribe("/vrep/hokuyo",1,&SimTasksEnv::laserScanCallback,this);
     laserscanSub = nh.subscribe("/scan",1,&SimTasksEnv::laserScanCallback,this);
     velPub = nh.advertise<geometry_msgs::Twist>(auto_topic,1);
 }

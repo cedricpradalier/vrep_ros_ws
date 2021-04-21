@@ -39,16 +39,15 @@ def init():
     global mux_proxy, joystick_topic, joystick_button
     global auto_topic, auto_button, selected, last_joy
     rospy.init_node('vrep_ros_teleop_mux')
+    rospy.wait_for_service('/mux/select')
+    mux_proxy = rospy.ServiceProxy('/mux/select', MuxSelect)
     
     sub = rospy.Subscriber('~joy', Joy, joy_cb)
+    sub = rospy.Subscriber('/mux/selected', String, selected_cb)
     joystick_button = rospy.get_param("~joystick_button",joystick_button)
     joystick_topic = rospy.get_param("~joystick_topic",joystick_topic)
     auto_button = rospy.get_param("~auto_button",auto_button)
     auto_topic = rospy.get_param("~auto_topic",auto_topic)
-    mux_prefix = rospy.get_param("~mux_prefix","/mux")
-    rospy.wait_for_service(mux_prefix+'/select')
-    mux_proxy = rospy.ServiceProxy(mux_prefix+'/select', MuxSelect)
-    sub = rospy.Subscriber(mux_prefix+'/selected', String, selected_cb)
     timeout = False
     while not rospy.is_shutdown():
         if (rospy.rostime.get_time() - last_joy) < 0.5: 
