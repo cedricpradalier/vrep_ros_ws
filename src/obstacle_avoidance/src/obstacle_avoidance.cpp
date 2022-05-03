@@ -155,7 +155,7 @@ class ObstacleAvoidance {
             // First convert the obstacle into the ego-kinematic space
             // (d,alpha), where d is the distance on the arc of circle, and
             // alpha = atan2(v,w)
-            cv::remap(og_,d_alpha_,dalpha_remap_x,dalpha_remap_y, CV_INTER_LINEAR, cv::BORDER_CONSTANT, UNKNOWN );
+            cv::remap(og_,d_alpha_,dalpha_remap_x,dalpha_remap_y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, UNKNOWN );
             // Now we need to go through all the d_alpha combination. If we hit
             // an obstacle at a given value of d, any further distance is also
             // going to hit it.
@@ -304,11 +304,11 @@ class ObstacleAvoidance {
 int main(int argc, char * argv[]) 
 {
     ros::init(argc,argv,"obstacle_avoidance");
-    cv::namedWindow( "OccGrid", CV_WINDOW_AUTOSIZE );
-    cv::namedWindow( "DAlpha", CV_WINDOW_AUTOSIZE );
-    cv::namedWindow( "Vr", CV_WINDOW_AUTOSIZE );
-    // cv::namedWindow( "DAlphaX", CV_WINDOW_AUTOSIZE );
-    // cv::namedWindow( "DAlphaY", CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( "OccGrid", cv::WINDOW_AUTOSIZE );
+    cv::namedWindow( "DAlpha", cv::WINDOW_AUTOSIZE );
+    cv::namedWindow( "Vr", cv::WINDOW_AUTOSIZE );
+    // cv::namedWindow( "DAlphaX", cv::WINDOW_AUTOSIZE );
+    // cv::namedWindow( "DAlphaY", cv::WINDOW_AUTOSIZE );
 
     ObstacleAvoidance::test_conversions();
     ObstacleAvoidance ca;

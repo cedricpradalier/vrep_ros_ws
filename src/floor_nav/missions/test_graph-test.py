@@ -24,7 +24,7 @@ try:
         tc.GoTo(goal_x=g.vs[node]["x"],goal_y=g.vs[node]["y"], max_velocity=0.5, k_v=1.0, max_angular_velocity=1.0)
     tc.Wait(duration=1.0)
 
-except TaskException, e:
+except TaskException as e:
     rospy.logerr("Exception caught: " + str(e))
 
 if not rospy.core.is_shutdown():

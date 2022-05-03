@@ -6,6 +6,8 @@ using namespace task_manager_msgs;
 using namespace task_manager_lib;
 using namespace floor_nav;
 
+boost::mutex TaskTrigger::clients_mutex;
+TaskTrigger::ClientMap TaskTrigger::clients;
 
 TaskIndicator TaskTrigger::initialize()
 {

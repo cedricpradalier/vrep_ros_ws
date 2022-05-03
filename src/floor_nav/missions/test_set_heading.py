@@ -16,7 +16,7 @@ try:
         tc.Wait(duration=3.0)
         tc.SetHeading(target=angle)
 
-except TaskException, e:
+except TaskException as e:
     rospy.logerr("Exception caught: " + str(e))
 
 if not rospy.core.is_shutdown():

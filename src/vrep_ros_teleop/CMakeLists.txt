@@ -106,11 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES vrep_ros_teleop
-<<<<<<< HEAD
-#  CATKIN_DEPENDS geometry_msgs rospy sensor_msgs topic_tools
-=======
 #  CATKIN_DEPENDS geometry_msgs rospy sensor_msgs
->>>>>>> ebb4019f458954d4f524019c4ec7a60043557b13
 #  DEPENDS system_lib
 )
 

@@ -26,8 +26,8 @@ def joy_cb(value):
         elif value.buttons[auto_button] and (selected.data != auto_topic):
             rospy.loginfo("Selecting auto")
             mux_proxy(auto_topic)
-    except rospy.ServiceException, e:
-        print "Service call failed: %s"%e
+    except rospy.ServiceException as e:
+        print("Service call failed: %s"%e)
 
 def selected_cb(value):
     global selected

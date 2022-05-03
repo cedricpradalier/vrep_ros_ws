@@ -26,7 +26,7 @@ try:
     tc.Wait(duration=1.0)
     tc.GoTo(goal_x=-scale,goal_y=-scale,max_velocity=vel)
 
-except TaskException, e:
+except TaskException as e:
     rospy.logerr("Exception caught: " + str(e))
 
 if not rospy.core.is_shutdown():

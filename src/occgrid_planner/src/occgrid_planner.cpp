@@ -97,7 +97,7 @@ class OccupancyGridPlanner {
             unsigned int w = maxx - minx;
             unsigned int h = maxy - miny;
             roi_ = cv::Rect(minx,miny,w,h);
-            cv::cvtColor(og_, og_rgb_, CV_GRAY2RGB);
+            cv::cvtColor(og_, og_rgb_, cv::COLOR_GRAY2RGB);
             // Compute a sub-image that covers only the useful part of the
             // grid.
             cropped_og_ = cv::Mat_<uint8_t>(og_,roi_);
@@ -354,7 +354,7 @@ class OccupancyGridPlanner {
 int main(int argc, char * argv[]) {
     ros::init(argc,argv,"occgrid_planner");
     OccupancyGridPlanner ogp;
-    cv::namedWindow( "OccGrid", CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( "OccGrid", cv::WINDOW_AUTOSIZE );
     while (ros::ok()) {
         ros::spinOnce();
         if (cv::waitKey( 50 )== 'q') {

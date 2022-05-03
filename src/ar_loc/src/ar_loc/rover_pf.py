@@ -70,8 +70,8 @@ class RoverPF(RoverKinematics):
         self.lock.release()
 
     def evalParticleAR(self,X, Z, L, Uncertainty):
-        x = mat(vstack([X[0,0],X[1,0]])) + self.getRotation(X[2,0])*Z
-        e = (x-L)/Uncertainty
+        x = self.getRotation(X[2,0])*(L - mat(vstack([X[0,0],X[1,0]])))
+        e = (x-Z)/Uncertainty
         return exp(-0.5*e.T*e)
 
     def evalParticleCompass(self,X, Value, Uncertainty):

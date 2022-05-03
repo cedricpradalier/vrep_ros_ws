@@ -25,7 +25,7 @@ try:
     tc.Wait(duration=1.0)
     tc.PlanTo(goal_x=-scale,goal_y=-scale,goal_theta=0.0)
 
-except TaskException, e:
+except TaskException as e:
     rospy.logerr("Exception caught: " + str(e))
 
 if not rospy.core.is_shutdown():
